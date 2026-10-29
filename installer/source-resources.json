@@ -91,6 +91,11 @@
       "path": "docs/samples/character-retargeting.mp4",
       "bytes": 12408995,
       "sha256": "8fce14c6f9042d1bd9799be2b44de3867916257c232ce8e39196b42b406f5c85"
+    },
+    {
+      "path": "docs/samples/multi-cam-mocap.mp4",
+      "bytes": 3633370,
+      "sha256": "0657ff52fb4f5e8c9464d4601f28233867ffd07f894ee71d31c08e6625cb0d6d"
     }
   ]
 }

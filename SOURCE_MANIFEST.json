@@ -11,8 +11,8 @@
     },
     {
       "path": ".gitignore",
-      "bytes": 1779,
-      "sha256": "17d30ce547db81fd30f41c73cf78e98cf1599f77673d3eff13a0afdeab82a51f"
+      "bytes": 1815,
+      "sha256": "7c89b0eb08e4e696516eba28f4996e441910cdbe5408fddafc4101e1bb53125b"
     },
     {
       "path": "AGENTS.md",
@@ -26,8 +26,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 6338,
-      "sha256": "5eacc9ea6e34ecea4fe0ebd4b654bcd27f9ee1d1040994bcd31e2259b8847d60"
+      "bytes": 6502,
+      "sha256": "70af93cdc43e4c31c7c986da69e22c7163a74c369df78fcd96830edd4ab9bca9"
     },
     {
       "path": "RGBMoCap.cmd",
@@ -168,6 +168,11 @@
       "path": "docs/samples/motion-capture.mp4",
       "bytes": 13808824,
       "sha256": "6cb138f4586ebed6620a60761d6646d658b2d496a7a166dbe5a07634b34d86a0"
+    },
+    {
+      "path": "docs/samples/multi-cam-mocap.mp4",
+      "bytes": 3633370,
+      "sha256": "0657ff52fb4f5e8c9464d4601f28233867ffd07f894ee71d31c08e6625cb0d6d"
     },
     {
       "path": "install.cmd",
@@ -946,8 +951,8 @@
     },
     {
       "path": "installer/source-resources.json",
-      "bytes": 3925,
-      "sha256": "35143421169b9e6e4c4e7955376038313577be417d45477bb965af8bacc33cfb"
+      "bytes": 4100,
+      "sha256": "c9a3bd6e973e7d64ca852f2448cf78abdf4e6a5a899c617f625e0d15372f28fe"
     },
     {
       "path": "installer/verify_mamma.py",

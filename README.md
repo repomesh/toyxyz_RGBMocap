@@ -19,6 +19,12 @@ https://github.com/user-attachments/assets/1759f1bf-a0d0-409f-84d8-dde9409cfe6f
 
 [Download original sample](docs/samples/character-retargeting.mp4)
 
+### Multi Cam MoCap
+
+https://github.com/user-attachments/assets/4c0b290b-4a65-4287-8d22-c63c96b3d080
+
+[Download original sample](docs/samples/multi-cam-mocap.mp4)
+
 ## Install and run
 
 1. Install [Git for Windows](https://git-scm.com/download/win). Open **Command Prompt**
