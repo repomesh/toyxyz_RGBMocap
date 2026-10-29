@@ -123,14 +123,6 @@ do not put passwords or account tokens in the agent chat.
 | [GVHMR](https://github.com/zju3dv/GVHMR) | SMPL-X | Optional HandFlow add-on | [GVHMR guide](docs/models/GVHMR.md) |
 | [MAMMA](https://mamma.is.tue.mpg.de/) · multi-view motion capture | SMPL-X | Included | [MAMMA guide](docs/MAMMA.md) |
 
-MAMMA uses multiple views of the same performance. Four cameras are not its
-maximum: the [official datasets](https://github.com/cuevhv/mamma/blob/main/docs/DATASETS.md)
-include 16- and 32-camera captures. **RGB MoCap accepts two or more synchronized
-fixed-camera videos without a fixed camera-count maximum.** Practical capacity
-depends on available RAM and VRAM; existing memory protection and OOM handling
-remain active. RGB MoCap does not synchronize inputs automatically. See
-[multi-view requirements and app limits](docs/MAMMA.md#prepare-your-videos).
-
 Requires 64-bit Windows, a compatible NVIDIA GPU/driver and OpenGL 4.3.
 Model files are acquired separately; some require registration and license acceptance.
 
@@ -145,7 +137,6 @@ archives need additional space. See the [storage details](docs/USER_GUIDE.md#ins
 ## Documentation
 
 - [User guide: installation, controls and settings](docs/USER_GUIDE.md)
-- [Model guides: files, defaults, options and limitations](docs/models/README.md)
 - [Model guides: files, defaults, options and limitations](docs/models/README.md)
 - [MAMMA: additional installation, model files and multi-video workflow](docs/MAMMA.md)
 - [Development and builds](docs/BUILD.md)
