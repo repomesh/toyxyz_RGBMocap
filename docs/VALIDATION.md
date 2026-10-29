@@ -171,7 +171,229 @@ interactive playback, standalone MMD playback or testing on other GPUs.
   passed. This is a single-PC regression check, not a low-memory hardware test or
   a guarantee against sudden allocations or competing GPU applications.
 
+MAMMA multi-view input setup (2026-10-29):
+
+- Five real camera videos opened through the multi-select picker and produced a
+  four-column thumbnail grid with a second row. Ten preview-camera switches kept
+  the frame, trim, 3D camera and one persistent decoder; sampled switch latency
+  was approximately 0.03–0.21 seconds on cached local files. The short sequence
+  showed no net thread/handle increase; this is not a long-run leak guarantee.
+- Real 25 fps / 60 fps videos shared a 30 fps timeline limited by the shorter
+  input. At timeline frame 45 (zero-based, 1.5 seconds), native requests were 38
+  and 90. Playback and resume after switching were exercised in the Qt event
+  loop; this was not a visible full-app GPU FPS measurement or a VFR test.
+- The actual Save Project As worker copied every input, restored common trim,
+  active camera, manual calibration and correction selection, and saved a second
+  portable project copy. Reopening in another tool and returning to MAMMA also
+  recovered the saved inputs. Eight rapid replacement requests coalesced to the
+  latest set, and saving was blocked during input preparation.
+- JSON and MAMMA YAML camera imports were checked, including camera-to-world
+  quaternion conversion against matching world-to-camera matrices. Invalid
+  rotations/intrinsics and missing files retained previous valid inputs/settings.
+  Existing three-model controls and single-video decoding were checked.
+- These initial checks covered input setup only. Later native-pipeline checks
+  below extend their scope; they do not validate fresh-user installation.
+  Original videos and motion data were not modified. Private test files remain
+  outside the public checkout.
+
+MAMMA native app pipeline (2026-10-29, same tested PC):
+
+- The GUI Reconstruct 3D queue completed SAM 2.1 segmentation, exact-ROI FP32
+  landmarks, VGGT cameras, full FP32 MAMMA fitting, native actor conversion,
+  shared-floor correction and source export preparation. Two synchronized views,
+  two people and 30 frames (one second) took 299.50 seconds including worker
+  startup and native preparation. A verified repeat reused inference in 14.48
+  seconds and retained the raw fitted file's timestamp and size.
+- Recorded PyTorch peak allocated/reserved VRAM (GiB) was 2.532/2.846 for masks,
+  0.585/0.645 for landmarks, 6.097/6.121 for cameras and 0.315/0.352 for fitting.
+  The largest process peak working set was 8.928 GiB in camera estimation.
+  These are process/allocator observations, not whole-PC or driver VRAM totals,
+  minimum requirements, or measurements for a long clip.
+- Exact sixteen-beta conversion matched original fitted meshes within 0.001 mm.
+  Original and corrected previews for two different body templates rendered
+  together on the real GPU. Readback against the CPU skin reference at three
+  frames differed by at most 0.002 mm. Twenty-four visibility changes retained
+  constant sampled handle/thread/GPU-buffer counts; sampled RSS changed about
+  0.04 MiB after warm-up. This is not a long-run leak guarantee.
+- Camera switching and six original/corrected transitions preserved the selected
+  frame and 3D camera. In a three-second playback check, the GUI event-loop gap
+  p95 was 9.57 ms and maximum 15.64 ms. These are event-loop gaps, not rendered
+  frame times or a universal FPS claim. Original GPU images were inspected.
+- Save Project As/reopen retained both actors and both working camera previews
+  with the original project temporarily offline. Manual lock edits blocked stale
+  export; Apply Correction refreshed both actors in 15.85 seconds without
+  changing either original source tensor. Incomplete publication, changed input
+  receipts and invalid saved settings were rejected. Removing a required cached
+  landmark rejected the cache and allocated a separate attempt. Missing
+  project-private body data was regenerated from the unchanged raw fit in
+  16.31 seconds without rerunning inference.
+- Four real source FBX exports (two people, original/corrected) imported through
+  ordinary Blender 4.5 settings with 52 Hips-root bones and no armature-object
+  keys. Maximum imported bone-head difference was 0.0034 mm. Retargeted-character
+  output and manual-camera end-to-end inference were not tested in this pass.
+- Model Manager imports were registered locally with expected SHA-256 receipts.
+  No registered weights, external MAMMA engine, body-derived assets, videos or
+  private tests were added to the publishable checkout. See [MAMMA](MAMMA.md)
+  for its separate-environment limitation; this is not a clean-install or
+  other-GPU validation, nor a validation of the 60-second adapter limit.
+
+Managed CMD startup after MAMMA routing changes (2026-10-29):
+
+- Reviewed unchanged dependency pins and refreshed the installer lock's registry
+  hash. The standard managed installation worker verified and reused all six
+  installed profiles without runtime downloads or replacement. It refreshed the
+  installed verification state; startup checks were not bypassed.
+- Actual RGBMoCap.cmd startup and its child-worker environment check passed.
+  A MAMMA project then opened through that same launcher and played two people
+  for three seconds without render errors or observed video/mesh frame mismatch.
+- Source composition validation now rejects a runtime registry hash that differs
+  from the installer lock. A private fixture confirmed both valid acceptance and
+  mismatched-lock rejection; private files remain outside the checkout.
+
 These checks describe the recorded examples, not a guarantee for every video,
 character or computer. Model weights and registered body data remain separate and
 subject to their providers' terms. Review the applicable third-party notices and
 corresponding source/build requirements before redistributing binaries.
+
+MAMMA supported optional runtime and UI (2026-10-29, same Windows/RTX 5090 PC):
+
+- A new isolated Python 3.11.17 / torch 2.7.1+cu128 runtime was installed from
+  SHA-256 pinned package/source archives, without copying the research venv.
+  SAM 2 and SDF were compiled locally. 176 package versions and 41,138 runtime
+  files were checked; deliberately pruned debug/developer files were excluded.
+  Actual runtime size: 6.19 GiB, excluding model weights and compiler tools.
+  Re-running setup reused the verified runtime without downloading/rebuilding.
+- CUDA SAM connected components and SDF distance, index width, winding and point
+  gradients passed. SDF squared-distance max error: 1.21e-8; gradient error: 0.
+  Restricted upstream code/native binaries remain outside this repository.
+- Fresh two-view, two-person, 30-frame processing completed in 297.55 s through
+  correction/preview. Peak PyTorch allocated/reserved memory was 6.10/6.12 GiB;
+  Windows process peak working set was 8.93 GiB. These are different measures
+  from whole-board VRAM or total system use. On the same working inputs, all
+  compared landmarks, visibility/contact predictions, fitted poses, betas and
+  translations matched the previous research engine exactly (maximum 0).
+- Original native vertices matched fitted MAMMA vertices within 0.001 mm.
+  Four source FBX files imported in Blender 4.5 with 52 Hips-root bones and no
+  armature-object animation; max sampled bone-head error was 0.0034 mm.
+- Height is numeric-only with a separate metre label; People has a separate
+  label, and MAMMA hides Find person. Nine model assets, runtime readiness/setup
+  instructions, other models' button restoration and the model guide were checked.
+- Fixed asynchronous thumbnail restoration capturing a temporary default 3D
+  camera. Fresh projects without a saved view framed both actors; saved camera
+  target/distance were preserved on reopen. One earlier direct-GUI reopen timed
+  out; subsequent fresh/saved-camera checks and CMD playback passed. This does
+  not establish long-duration reliability or performance on every project.
+- Actual RGBMoCap.cmd playback (4 s): 29.74 fps, frame interval p95 34.78 ms,
+  max 35.65 ms, video/3D and mesh/video frame differences 0; two actors and name
+  labels were visibly present, render errors absent, paused skin dispatches 0.
+- Setup failure injection retained the old pointer and model/project sentinels
+  and removed its failed staging directory. Unsafe archive aliases were rejected;
+  generated batch paths with Korean text, percent signs and shell punctuation
+  were checked. This is not a full non-ASCII compiler-install test.
+- User's separate manual three-view/413-frame log completed in 712.08 s without
+  fatal traceback or OOM. No clean-Windows, other-GPU, 60-second/eight-person
+  capacity, or newly retargeted-character test is claimed in this pass.
+
+MAMMA camera-count restriction removal (2026-10-30, same Windows PC):
+
+- Removed the GUI/worker four-view maximum and the input/calibration parser's
+  separate 64-camera ceiling. Reconstruction still requires at least two views;
+  duplicate names, calibration/size checks and bounded metadata files remain.
+  Existing clip/person limits were not changed.
+- Input, calibration, request and saved-media validation accepted 2, 4, 5, 8, 16,
+  32 and 65 camera entries. Empty/duplicate inputs, a single-view reconstruction
+  and mismatched camera calibration were rejected.
+- The actual preparation worker decoded/resampled all 5, 16 and 65 test videos,
+  retaining 12 frames per view. Latest observed preparation times were 1.35,
+  2.93 and 9.88 seconds. These were tiny synthetic 320x180 clips with repeated
+  content for input-count regression, not multi-camera reconstruction benchmarks.
+- Actual GUI widgets loaded 5, 16 and 65 thumbnails, selected the final camera
+  and retained the shared trim and timeline frame. The 65-view GUI request queued
+  all six reconstruction stages. Save Project As and actual GUI reopening
+  retained all 65 media references, calibration and the selected last camera.
+  No 3D render/playback performance claim is made from this hidden-window test.
+- Shared system-RAM/Windows allocation-headroom checks and CUDA allocator budgets
+  were unchanged. Low-memory observations triggered the existing guard. Injected
+  CUDA OutOfMemoryError and CPU MemoryError produced failed events and nonzero
+  worker results while preserving the existing project manifest. This was fault
+  injection, not deliberate exhaustion of system/GPU memory.
+- No new 5/16/32/65-view SAM, VGGT or complete MAMMA fitting run was performed.
+  Removing a fixed input-count ceiling is not a measured memory-capacity guarantee.
+  Private test scripts, synthetic media and logs remain outside the source checkout.
+
+Pre-publication regression audit (2026-10-30, same Windows 11 / RTX 5090 PC):
+
+- A separate source/runtime copy and local-only Git remote exercised the
+  pre-MAMMA-to-current update, `install.cmd` verification/reuse and actual
+  `RGBMoCap.cmd` startup before the optional MAMMA runtime was registered.
+  Model/project/cache sentinels survived. Tracked local edits blocked updating;
+  the application lock blocked a second launch. This reused installed pinned
+  runtime files; it was not a clean-Windows or fresh-download installation.
+- `Setup_MAMMA.cmd` accepted the license response, performed full package/native
+  CUDA verification and retained the verified runtime. Declining left it intact.
+  Injected setup failure retained the old pointer and user-data sentinels;
+  archive escapes were rejected. Fresh native compilation was not repeated in
+  this audit; its earlier build evidence remains recorded above.
+- Fresh ExMR, FlowHMR and GVHMR processing each used the same 60-frame real-video
+  segment. FlowHMR included VGGT and Fast SAM; GVHMR included HTD, FootMR and
+  HandFlow. Reconstruction, correction, preview preparation and source FBX
+  saves completed. MAMMA separately processed two synchronized views, 30 frames
+  and two people through new SAM 2.1 masks, landmarks, VGGT, fitting and publication.
+- Seven source FBX files were actually imported in Blender 4.5. All retained
+  52 Hips-root bones and bone-only animation. Maximum sampled bone-head error
+  was below 0.008 mm. Character imports covered Mixamo FBX, VRM and a 797-bone
+  PMX; all four source models retargeted successfully. Eight character FBX
+  reimports covered mesh/motion-only options, original rest transforms and
+  sampled poses, with no armature-object or hair/clothing animation channels.
+  PMX VMD exports passed finite-channel/frame/structure checks; native MMD
+  playback was not repeated in this audit.
+- Fixed MAMMA preparation/publication failures incorrectly returning process
+  exit code zero. Both now emit failure and exit nonzero. Fixed retargeting's
+  MAMMA body selection; a real PMX retarget also passed while the separate
+  standard SMPL-X file was unavailable in the private test copy.
+- Real GUI checks covered all four scoped model managers, original/corrected
+  switching without frame/camera changes, manual contact editing, stale export
+  blocking, Apply Correction without inference, Save Project As/reopen and
+  MAMMA camera switching/private-body relocation. Eight project replacements
+  were sampled; this short test does not prove leak freedom. Cached switching
+  among three models in one project, GVHMR result variants, GUI character
+  import/retarget, linked-character refresh after correction and selected-row
+  character removal also completed.
+- Four-second actual CMD playback samples for each model measured 29.74 fps,
+  frame-interval p95 34.64–35.21 ms and maximum 35.28–36.74 ms. Video/3D and
+  mesh/video frame differences were zero; paused skin dispatches were zero.
+  These short clips on one PC are not long-video or cross-GPU guarantees.
+- A separate 797-bone PMX viewport check with two MAMMA source actors measured
+  29.73 fps over four seconds (p95 36.44 ms, maximum 37.87 ms), with no character
+  renderer error. Two-second rest-pose and paused-animation observations each
+  recorded zero loader-change events and zero frame swaps. This specifically
+  checks the short/final-window repaint regression, not long-duration stability.
+- Test scripts, licensed inputs, runtime copies, logs and generated motion were
+  kept outside the publishable checkout. Main, user, per-model, build and agent
+  guides were checked against current controls, file requirements and limits.
+
+### Person-selection responsiveness (2026-10-30)
+
+A two-person MAMMA project's independent copy was switched six times before
+and after the GUI change. With profiling disabled, median synchronous selection
+time fell from 803 ms to 173 ms; selected-preview/video readiness fell from
+1,117 ms to 534 ms. The common scene, source frame and world camera were retained.
+An unchanged active camera was reopened zero times instead of twice per switch.
+The remaining selected-person preview loading still runs in the background.
+
+Nested control updates now validate readiness once at their synchronous outer
+boundary. Shared-floor checks reuse one read-only snapshot inside an individual
+GUI validation call, never across calls or threads. Export and later callbacks
+still check disk afresh. Tests confirmed that pending publication, changed floor
+receipts and unapplied manual contact edits block export after a preceding valid
+check. Manual contact editing, actor switching and Apply Correction completed
+without replacing inference. The live non-default camera choice was retained.
+Existing ExMR, FlowHMR and GVHMR cached original/corrected views also rendered.
+Video reuse checks file identity, FPS and timeline offset; changed inputs and
+decode failures reopen normally. These are short same-PC measurements, not
+long-recording or other-hardware guarantees. Test data remains outside source.
+
+Four-second CMD playback samples across the four models measured 29.74–29.82 fps,
+with frame-interval p95 34.71–35.04 ms and maxima 35.86–36.73 ms. Video/3D and
+mesh/video frame differences were zero. GVHMR finished one queued frame just
+after Stop; a separate settled two-second pause recorded zero skin dispatches.

@@ -101,8 +101,10 @@ have not yet been verified; compatibility reports are welcome.
 2. Run `install.cmd` with an internet connection. It downloads and verifies
    pinned Python environments, Blender 4.5.0, FFmpeg 7.1.1 and small upstream
    support files, and installs the included prebuilt motion-correction module.
-   The AI runtimes remain separate. Downloads and free disk space are needed;
-   the install can take time.
+   It prepares all three single-video model runtimes and their supported add-ons
+   together, not only the currently selected model. The AI runtimes remain
+   separate; model weights/body data are not included. Downloads and free disk
+   space are needed, and the install can take time.
 3. Run `RGBMoCap.cmd`. Keep its console open while the GUI runs; launch errors
    and exit codes are displayed there. Processing messages and app **Console** output
    are also sent there, but very long or high-volume output can be truncated or
@@ -110,6 +112,21 @@ have not yet been verified; compatibility reports are welcome.
 4. In **Model Manager**, download or import the selected AI model files. Some
    models require registration and agreement to their provider's terms and must
    be downloaded manually.
+
+**For MAMMA multi-video capture**, complete those steps, install Visual Studio
+2022 C++ Build Tools with a Windows SDK and NVIDIA CUDA Toolkit 12.8, then close
+the app and run:
+
+```cmd
+Setup_MAMMA.cmd
+```
+
+Review the restricted-use license prompt before accepting. Reopen the app,
+select **MAMMA**, and prepare its files in **Model Manager**. Its **Runtime
+Setup...** button shows readiness and setup instructions. The optional runtime
+is not installed by `install.cmd` or `update.cmd`; the other three models do not
+need it. Follow the [MAMMA installation and model checklist](MAMMA.md) for exact
+prerequisites, the locked-head body models and multi-video requirements.
 
 To update, close RGB MoCap and run `update.cmd` in the repository folder. It
 refuses to overwrite tracked local edits, requires the `main` branch, pulls only
@@ -132,10 +149,16 @@ other PCs; connection speed and storage performance affect the time.
 
 Allow at least **32.4 GiB free** for first-time runtime installation before
 models; this includes temporary installation space. The installed app, runtimes
-and all supported models total roughly **42 GiB (45 GB)**, including about
+and the three single-video models with their add-ons total roughly
+**42 GiB (45 GB)**, including about
 29 GiB of model files. Download
 caches, videos, projects, characters and exports require additional space, and
-actual sizes can vary. No clean-Windows or other-GPU test is claimed.
+actual sizes can vary. These totals cover the three single-video models.
+MAMMA adds 6.19 GiB of runtime on the test PC and 3.42 GiB of model assets if
+VGGT-Omega is already installed, or 7.69 GiB of model assets including VGGT.
+Its setup needs about 18 GiB free before models, plus separately installed
+C++/CUDA compiler tools. See [MAMMA](MAMMA.md) for measured installation details.
+No clean-Windows or other-GPU test is claimed.
 
 ## Storage and cleanup
 
@@ -151,10 +174,13 @@ may be outside the installation folder.
 | Your **Save Project As** destination | The same rule applies to each saved project folder at your chosen location. It contains a copy of the video and project data. Deleting it removes that copy; cleaning the default `projects` folder does not clean external copies. |
 | `<install folder>\character_scenes\<session folder>\` | Contains characters imported before a project was opened. Old session folders can be deleted once those imports are no longer needed or have been copied into a saved project. Unsaved session imports are lost. |
 | `<install folder>\.setup\downloads\`, `.setup\uv-cache\` and `.setup\tmp\` | Downloaded wheels and temporary cache can be removed only after installation or update completes. They are reused for repair and updates; deleting them may require downloading files again. Keep the rest of `.setup`, including the private Python and installation state. |
+| `<install folder>\.setup\mamma-downloads\` | Optional MAMMA package/source download cache. Its contents can be removed after MAMMA setup finishes; repair may need to download them again. Keep `runtime_mamma` and `.setup/mamma-runtime.json`. |
 
-Repeated work mainly grows project data: each model has its own `exmr`, `flowhmr`
-or `gvhmr` folder, different processing ranges can add `clips` subfolders, and
-character imports/retargeting add character data. These are saved work, not just
+Repeated work mainly grows project data: each model has its own result folder.
+Inside `exmr`, `flowhmr` or `gvhmr`, different processing ranges can add `clips`
+subfolders. MAMMA keeps immutable `inference/<generation>` and
+`results/<generation>` folders instead. Character imports/retargeting add
+character data. These are saved work, not just
 disposable caches. Do not delete individual model folders, `characters`, motion
 tensors, preview files or receipt files from a project you want to keep; its
 metadata can still reference them. Export or back up needed work, then remove an
@@ -168,13 +194,20 @@ need an offline copy; keep a backup of manually acquired restricted models.
 
 ## Start here
 
-1. **File → Open Video**, or drop a video into the workspace.
+For ExMR, FlowHMR and GVHMR:
+
+1. Choose an **AI Motion Model**, then **File → Open Video**, or drop a video
+   into the workspace.
 2. Optionally trim the timeline's **Video** track by dragging its ends.
-3. Choose an **AI Motion Model**, then use **Model Manager** to prepare its files.
+3. Use **Model Manager** to prepare the selected model's files.
 4. For several people, use **Find person** and check who to reconstruct.
 5. Click **Reconstruct 3D**. Review the video, mesh and **Bone Overlay** together.
 6. Adjust correction settings or contact timings, then click **Apply Correction**.
 7. **File → Export FBX** saves the displayed, applied animation.
+
+For synchronized multi-camera capture, select MAMMA before opening videos and
+follow the [MAMMA workflow](MAMMA.md#reconstruct-and-export). It detects people
+during reconstruction, so the **Find person** step is not used.
 
 To animate a character, follow [Character retargeting](#character-retargeting),
 then use **Export Character...** for FBX or, for PMX, VMD.
@@ -182,17 +215,23 @@ then use **Export Character...** for FBX or, for PMX, VMD.
 **Open Project** restores saved results and settings. **Open Project Folder** opens
 their location. **Save Project As** (`Ctrl+Shift+S`) creates a new named project
 folder at your chosen location and switches to that copy. It includes the video,
-motion, people and contact edits for every model. Open its `project.json` to return
-to it. Each project manages `exmr`, `gvhmr` and `flowhmr` folders. Selecting a model
+motion, people and contact edits for every model, including all MAMMA input videos
+when present. Open its `project.json` to return to it. Each project manages
+`exmr`, `gvhmr`, `flowhmr` and `mamma` result folders as needed. Selecting a model
 loads its saved motion; if it has no result, **Reconstruct 3D** creates its data in
 that folder. Result selections, contact edits and settings stay separate by model.
-New processing ranges stay under that model's `clips` folder. The previous project
+New single-video processing ranges stay under that model's `clips` folder;
+MAMMA uses its own inference/result generation folders. The previous project
 folder format is not migrated; open the original video to create a new project.
 Model weights remain in the app's model
 library. Trimming does not modify the original video. Processing uses a
 30 fps working clip; camera sampling does not reduce its motion frame count.
 
 ## Choose a model
+
+Each model has a [detailed guide](models/README.md): [ExMR](models/EXMR.md),
+[FlowHMR](models/FLOWHMR.md), [GVHMR](models/GVHMR.md) and [MAMMA](MAMMA.md).
+These cover required files, settings, defaults and workflow limitations.
 
 These quality comparisons are **subjective observations from our test videos**,
 not accuracy scores or a universal ranking. See the in-app **Model Guide** for
@@ -205,11 +244,37 @@ opening a project restores its saved model. **Prepare Preview**, below
 | **ExMR** | Generally fast, with good overall motion quality. | Included. |
 | **FlowHMR** | Slow, but the best overall motion quality in our tests. | Included. |
 | **GVHMR** | Lowest overall quality in our tests, but sometimes better for unusual poses such as backflips. | Optional **HandFlow**; not inferred by GVHMR itself. |
+| **MAMMA** | Multi-view capture of human motion and interactions. Needs separate setup and overlapping synchronized views; outside the single-video quality ranking above. | Included. |
 
-All three support people selection, contact correction, a 52-bone overlay and
-FBX export. The viewport shows the selected source mesh: SMPL-X for ExMR/GVHMR,
+All four support contact correction, a 52-bone overlay and FBX export. The three
+single-video models use **Find person** for explicit people selection; MAMMA
+detects and matches people during reconstruction. The viewport shows the selected
+source mesh: SMPL-X for ExMR/GVHMR/MAMMA,
 SMPL-H for FlowHMR. The export skeleton follows that motion; source estimation
 errors can remain.
+
+### MAMMA multi-view reconstruction
+
+Select **MAMMA** before opening two or more synchronized fixed-camera videos.
+There is no fixed camera-count maximum; available RAM and VRAM determine
+practical capacity. Existing memory monitoring and OOM handling stay active.
+See [input requirements and remaining app limits](MAMMA.md).
+Camera thumbnails show four per row and switch the main preview without changing
+the common 30 fps timeline or trim. VGGT estimates cameras by default;
+**Import Camera Data...** accepts compatible JSON/MAMMA YAML calibration.
+Motion Correction defaults on, preserves original motion and supports the same
+contact editing and FBX workflow. **Save Project As** includes all camera videos.
+
+Run **Setup_MAMMA.cmd** separately after the base installation; Model Manager >
+**Runtime Setup...** explains its compiler prerequisites, disk use and restricted
+licenses. Prepare the nine model assets through Model Manager. MAMMA detects and
+matches people during reconstruction, so **Find person** is hidden. **People** can
+be Auto or a fixed count. Enter only the number in **Reference Height (m)**; this
+sets approximate VGGT scale and is unused with metric camera calibration.
+For example, enter `1.70` for 170 cm; it does not force all actors to the same
+height. Input videos must already start in sync and show the same performance.
+Read [MAMMA setup, input assumptions and limits](MAMMA.md) before reconstruction.
+The app uses SAM 2.1 and FP32 fitting; SAM 3.1 research tests remain separate.
 
 ## Recorded processing time and VRAM
 
@@ -275,7 +340,13 @@ The app does not need your provider password or access token.
 | FlowHMR | [AMASS SMPL-H neutral](https://mano.is.tue.mpg.de/download.php): Extended SMPL+H model, `smplh/neutral/model.npz` (16 shape components). |
 | ExMR / GVHMR HandFlow | [MANO](https://mano.is.tue.mpg.de/download.php): `MANO_RIGHT.pkl` from `mano_v1_2.zip`. |
 | ExMR / FlowHMR | [SAM 3D Body](https://huggingface.co/facebook/sam-3d-body-dinov3): supported `model.ckpt`, `model_config.yaml` and `assets/mhr_model.pt`, each in its matching row. |
-| FlowHMR moving camera | [VGGT-Omega](https://huggingface.co/facebook/VGGT-Omega): supported `vggt_omega_1b_512.pt`. Not needed in Static Camera mode. |
+| FlowHMR moving camera / MAMMA automatic cameras | [VGGT-Omega](https://huggingface.co/facebook/VGGT-Omega): supported `vggt_omega_1b_512.pt`, shared under `models/flowhmr/`. Not needed for FlowHMR Static Camera or MAMMA Manual Camera Data. |
+| MAMMA | [Registered MAMMA downloads](https://mamma.is.tue.mpg.de/): `mamma_mask_full_cvpr.ckpt` and `verts_512.pkl`. Follow the matching Model Manager rows. |
+| MAMMA | [SMPL-X with removed head bun (NPZ, 392 MB)](https://smpl-x.is.tue.mpg.de/download.php): import the neutral, male and female locked-head bodies into `models/mamma/smplx/`. Standard SMPL-X v1.1 is not interchangeable. |
+
+MAMMA's [complete nine-asset checklist](MAMMA.md#prepare-model-files) also covers
+SAM 2.1, YOLO12x and OpenCLIP. Its runtime setup and model imports are separate
+steps; a ready runtime does not mean the models are ready.
 
 ### Reuse models in a new installation
 
@@ -319,7 +390,11 @@ selected result is missing, reconstruct it; the app reports it as unavailable.
 | **GVHMR → FootMR** | Refine ankle angles from foot observations. Separate from foot contact locking. |
 | **GVHMR → HandFlow** | Add finger tracking while preserving the selected body and wrist motion. Requires additional weights and MANO. |
 | **Analyze 2D** | Prepare GVHMR refinement observations separately. Reconstruct 3D includes this step when needed. |
-| **Resource Mode** | Automatic balances speed and available memory. Low Memory uses smaller image batches while retaining inference quality. |
+| **MAMMA → Camera Calibration** | VGGT (Automatic) estimates fixed cameras. Manual Camera Data uses an imported compatible JSON/MAMMA YAML file for the selected videos. |
+| **MAMMA → Import Camera Data...** | Import calibration with camera names matching video filenames without extensions, original pixel intrinsics and metric translations. See the exact [camera format](MAMMA.md#manual-cameras). |
+| **MAMMA → People** | Default 0 automatically detects people during reconstruction; set 1–8 if someone is missed or background people are included. Count each person once across all cameras. Find person is hidden. |
+| **MAMMA → Reference Height (m)** | Numeric approximate standing height, default 1.70 m. Sets VGGT scene scale, not every actor's height; unused with metric manual calibration. |
+| **Resource Mode** | For supported single-video stages, Automatic balances throughput and memory; Low Memory uses smaller image batches. MAMMA keeps its pinned processing settings and shared memory protections. |
 | **Prepare Preview** | Rebuild mesh/skeleton previews from existing motion without running the AI model again. Useful for older projects. |
 | **Cancel Job** | Stop queued processing; completed results are kept. |
 
@@ -327,7 +402,11 @@ Processing shows the current step, progress and elapsed time. **Step left** esti
 the current step; **Total left** estimates the queue when timing data is available.
 Use **Console** for details and errors. Loading or unmeasured work shows activity
 instead of an invented percentage. FlowHMR is limited to 5,000 frames per take
-(about 166.7 seconds); available memory may require a shorter clip.
+(about 166.7 seconds); available memory may require a shorter clip. MAMMA's
+adapter accepts 4–1,800 common frames and at most eight people. It requires
+two or more synchronized fixed-camera videos, with no fixed camera-count
+maximum. Four thumbnails per row is only a layout choice. These limits do not
+guarantee that a workload fits RAM or VRAM.
 
 Processing is allowed to start without a predicted RAM/VRAM minimum. While it
 runs, the app monitors actual available RAM and Windows allocation headroom.
@@ -339,7 +418,7 @@ allocation can still fail before the next monitor check.
 
 GPU allocator budgets use ComfyUI's external-use margin: 600 MiB on Windows,
 or 700 MiB on GPUs larger than 15 GiB, subtracted from currently free VRAM.
-All three model paths use this rule; FlowHMR/ExMR no longer subtract fixed
+All four model paths use this rule; FlowHMR/ExMR no longer subtract fixed
 3/2 GiB or impose an additional 95/90% ceiling. Inference working memory is
 part of the allowed budget. This is not a guarantee of free VRAM: other apps
 and allocations outside PyTorch can still consume it.
@@ -378,8 +457,8 @@ an estimate and can leave residual sliding or penetration.
 
 | Control | Function |
 | --- | --- |
-| **Find person** | Discover people for explicit selection. Without it, reconstruction tracks one person automatically and may switch identity when people overlap. |
-| **People checkboxes / selected row** | Checked people are processing/display targets. The selected row controls timeline and contact editing. |
+| **Find person** | For single-video models, discover people for explicit selection. Without it, tracking selects one person and may switch identity during overlap. MAMMA instead detects and matches people during reconstruction; this button is hidden. |
+| **People checkboxes / selected row** | Checked rows control visibility and single-video reconstruction targets. MAMMA reconstructs its detected/requested people together. The selected row controls timeline and contact editing. |
 | **Character checkboxes / selected row** | Show or hide imported characters independently of source people. Select a character to export it; right-click it for Retarget, Export Character or Remove Character. |
 | **People → ?** | Open instructions for people selection, names, colors and takes. The list footer shows only current status or warnings. |
 | **Rename... / color square** | Right-click a row to rename it; click its square to change display color. The name is also used for FBX filenames and rig names. |
@@ -394,8 +473,9 @@ an estimate and can leave residual sliding or penetration.
 | **Playback / frame number / speed** | Space plays/pauses; arrows step one frame, Shift+arrows one second. Enter a frame number to jump. Playback speed affects preview only. |
 | **Timeline Frame All / Reset Trim** | Fit the full timeline / restore the full clip range. |
 
-Checked people are processed independently and shown in a shared scene. They
-share correction mode/floor; timings and pelvis offsets remain per person/take.
+The single-video models process checked people independently; MAMMA fits its
+people together from the camera inputs. Results are shown in a shared scene.
+People share correction mode/floor; timings and pelvis offsets remain per person/take.
 Apply Correction updates all available takes, including hidden ones. Relative
 depth and contacts between people are estimates; collision avoidance is not provided.
 
