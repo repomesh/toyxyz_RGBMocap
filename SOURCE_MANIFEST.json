@@ -26,8 +26,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 8892,
-      "sha256": "427ac36469525cffb407294902655b492999125d8423adf79784959b6e00066a"
+      "bytes": 9122,
+      "sha256": "6b33954c96396e2f0be712adea9516ab1c0e050b3749f301bb49601a4c0bfc87"
     },
     {
       "path": "RGBMoCap.cmd",
@@ -96,8 +96,8 @@
     },
     {
       "path": "docs/AGENT_GUIDE.md",
-      "bytes": 28748,
-      "sha256": "efdb3f9793fee6a6f94d5ae0a22a8f877f12f8c47e5966e6cd26168dc6810018"
+      "bytes": 28855,
+      "sha256": "0c5bf9670e7993376b9ac6b6468d7c8d5b7134a66af9654950cb26c21ae702cf"
     },
     {
       "path": "docs/BUILD.md",
@@ -121,13 +121,28 @@
     },
     {
       "path": "docs/USER_GUIDE.md",
-      "bytes": 43444,
-      "sha256": "0fb039d0b2c0326eab7bc9bdf0c45ea52ebf1168da2f4439d4dc0b901a538cdb"
+      "bytes": 43482,
+      "sha256": "acf893a4721fb344b72069c72173d5d9c9f8a1cd496bd9e5d959c7f0ffa3256f"
     },
     {
       "path": "docs/VALIDATION.md",
       "bytes": 47178,
       "sha256": "2375b9be585f97c16e07ec3314f1b5cf7ae7aec6a811d07340872bcdd8a9887d"
+    },
+    {
+      "path": "docs/images/exmr-interaction-contact.png",
+      "bytes": 336149,
+      "sha256": "2210d3cbdd46d65bb812d0c95b9f90cc766ec4a689745e53db6c69343542acd2"
+    },
+    {
+      "path": "docs/images/interaction-contact-input.png",
+      "bytes": 166612,
+      "sha256": "60c19d94255eb5f01d0456063fc63b3db7905cf18817478a9ea8bf34a09fe8d1"
+    },
+    {
+      "path": "docs/images/prompthmr-interaction-contact.png",
+      "bytes": 346668,
+      "sha256": "3726c0a2c9ba6be531b07b1b197185d2c98046380ec9c464acc7d752687a4500"
     },
     {
       "path": "docs/images/rgbmocap-workspace.png",
@@ -136,8 +151,8 @@
     },
     {
       "path": "docs/models/EXMR.md",
-      "bytes": 6294,
-      "sha256": "d075e2d8676d665d012fdf08144f83244de52a658bcb5b135115ed86a062b5a9"
+      "bytes": 6441,
+      "sha256": "77d2e4f447414996159ff32bab2eeea44af6da9e67d20c8eb97bf1cf6b3f52ee"
     },
     {
       "path": "docs/models/FLOWHMR.md",
@@ -151,13 +166,13 @@
     },
     {
       "path": "docs/models/PROMPTHMR.md",
-      "bytes": 12912,
-      "sha256": "a5ab49e4d11a9209c9e16bda68af81256c8772dbf686a37baa5b0e3158493a26"
+      "bytes": 14062,
+      "sha256": "685160a1a11f585a6f1a80e29bb3ad7ea0937cddef9835a09502035a4a8cb700"
     },
     {
       "path": "docs/models/README.md",
-      "bytes": 5160,
-      "sha256": "9d17e64bc28b011647957d9b267c231680b61ba168399240433a5eb44026937f"
+      "bytes": 5314,
+      "sha256": "ac431b998af10dcc14f14efba897f9b7d64e955e22800123d79e14dbf1f48599"
     },
     {
       "path": "docs/samples/character-retargeting.jpg",
@@ -1366,8 +1381,8 @@
     },
     {
       "path": "mocap/model_guide.py",
-      "bytes": 7314,
-      "sha256": "8f8f034d351f6ec70d4adcc140692675f5507834f8bcb6379f476c0e8333cceb"
+      "bytes": 7377,
+      "sha256": "4c2007d61fe00cc8cb4600c00776ac251b868820c9225ff137583cecd1efe6e2"
     },
     {
       "path": "mocap/model_session.py",

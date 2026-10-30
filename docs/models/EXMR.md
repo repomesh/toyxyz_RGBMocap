@@ -6,6 +6,9 @@ ExMR reconstructs SMPL-X body and finger motion from one video. It is the defaul
 model for new work. In this project's subjective tests it was generally fast
 with good motion quality; results depend on the footage and settings.
 
+For a qualitative two-person contact example, see the
+[PromptHMR and ExMR interaction comparison](PROMPTHMR.md#single-video-interaction-example).
+
 ## Prepare files
 
 Run the normal `install.cmd`; no separate ExMR setup command is needed.

@@ -24,8 +24,10 @@ For manual MAMMA cameras, see the [calibration format and JSON example](../MAMMA
 In this project's subjective tests, ExMR was generally fast with good quality;
 FlowHMR was slower with the best overall quality; GVHMR was less consistent
 overall but sometimes better for unusual poses such as backflips. These are
-not benchmark rankings. MAMMA and PromptHMR were tested as separate interaction
-workflows and are not entries in that ExMR/FlowHMR/GVHMR quality ranking.
+not benchmark rankings. PromptHMR could improve relative placement and
+interactions for multiple people in one video, but its overall motion quality
+was lower than ExMR in our subjective tests, and it has no finger tracking.
+MAMMA is a separate multi-view workflow rather than another single-video option.
 
 ## Installation and shared workflow
 

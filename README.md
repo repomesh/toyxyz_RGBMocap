@@ -132,6 +132,10 @@ do not put passwords or account tokens in the agent chat.
 
 ## Supported AI models
 
+In our subjective tests, **PromptHMR** could improve relative placement and
+interactions between multiple people in a **single video**, but its overall
+motion quality was lower than **ExMR**. It does not support finger tracking.
+
 | Model / original project | Body representation | Fingers | Setup and use |
 | --- | --- | --- | --- |
 | [ExMR](https://github.com/twehrbein/ExMR) | SMPL-X | Included | [ExMR guide](docs/models/EXMR.md) |

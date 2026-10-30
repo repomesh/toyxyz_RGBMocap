@@ -4,11 +4,33 @@
 [Official project](https://yufu-wang.github.io/phmr-page/) ·
 [Official code](https://github.com/yufu-wang/PromptHMR)
 
-PromptHMR reconstructs people together from one video. Some hand-contact scenes
-in our two-person tests had better relative placement than independently
-reconstructed actors. This is an observation, not a ground-truth accuracy
+PromptHMR reconstructs multiple people together from a **single video**. In our
+subjective tests, it could reproduce relative positions and interactions more
+accurately than independently reconstructed actors, but its **overall motion
+quality was lower than ExMR**. It **does not support finger tracking**; the app
+uses a fixed neutral finger pose. These observations are not a universal accuracy
 ranking. Depth errors, sliding, identity changes and body intersections remain
 possible. Interaction Prompt does not create a contact lock.
+
+## Single-video interaction example
+
+The input frame shows a kicking foot contacting the other person's torso.
+The supplied reconstructions illustrate how the models place the two people
+relative to each other.
+
+**Input video frame**
+
+![Input frame showing a kick to the other person's torso](../images/interaction-contact-input.png)
+
+| PromptHMR | ExMR |
+| --- | --- |
+| ![PromptHMR reconstruction of foot-to-torso contact](../images/prompthmr-interaction-contact.png) | ![ExMR reconstruction with different foot-to-torso placement](../images/exmr-interaction-contact.png) |
+
+In this example, PromptHMR more closely reproduces the foot-to-torso contact
+visible in the input, while ExMR leaves a different relative placement at the
+contact point. This is a qualitative example, not a measured contact-accuracy
+benchmark. The viewport angles differ, and the images do not establish an exact
+3D contact distance or guarantee similar results on other footage.
 
 ## Install the separate runtime
 
