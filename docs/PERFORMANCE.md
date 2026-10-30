@@ -85,6 +85,38 @@ estimate a complete job. No extra packages, quantization, TensorRT engine or
 user compilation is needed for these optimizations. MAMMA's optional runtime
 still has its separately documented installation/build requirements.
 
+### VGGT camera checkpoint loading
+
+The Automatic camera-only fast path uses `meta` initialization and
+`load_state_dict(assign=True)` to avoid disposable initial weights and copying
+over them. FlowHMR and MAMMA share this loader. Low Memory, including an Automatic
+fallback/retry, retains the previous copy-based loader and block offload. Generic
+depth loading is unchanged. There is no new setting or runtime dependency.
+
+Paired component tests used nine images from three cameras, balanced 512
+preprocessing (9x3x432x592 tensor), on the test PC above. Each Flow runtime
+configuration ran in two separate processes; times below are means and memory
+is the largest recorded value. Image decoding is outside the reported timers.
+
+| Automatic VGGT camera component | Previous loading | Meta + assign |
+| --- | ---: | ---: |
+| Instrumented model loading | 7.24 s | 2.34 s |
+| Peak process RAM working set | 8.88 GiB | 5.40 GiB |
+| Peak Windows process private allocation | 14.19 GiB | 14.19 GiB |
+| Peak PyTorch allocated VRAM, including inference | 6.47 GiB | 6.47 GiB |
+
+Loading timers include measurement-time cleanup/synchronization; filesystem
+caches were not cleared. The MAMMA Python runtime separately completed a
+one-pair check, 7.10 to 2.41 s loading. All 14 experimental runs retained exact
+camera pose encodings, extrinsics and intrinsics, with unchanged FP32 parameter
+storage and native inference autocast. These are camera-component observations,
+not whole-motion speedups or a guarantee of improved system allocation headroom.
+
+Meta/assign was deliberately not adopted for Low Memory: experimental Windows
+private allocation increased from 11.04 to 13.86 GiB, while peak working set
+changed only from 8.88 to 8.46 GiB. Some reading also moved to first inference.
+`assign=True` without meta initialization did not provide the combined benefit.
+
 ### Model reuse and connected workers
 
 One resident model serves actors sequentially, then is released before the next

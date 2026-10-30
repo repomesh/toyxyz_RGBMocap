@@ -181,6 +181,13 @@ or a lower-precision model. It keeps VGGT camera transformer blocks on CPU and
 transfers them for inference. Automatic uses the fast camera path when GPU memory
 is sufficient, selects offloading when needed, and can recover once from a camera
 CUDA OOM. Decisions and Low Memory advice appear in Console and the CMD window.
+
+The Automatic VGGT camera fast path shares FlowHMR's meta-initialized,
+direct-assignment checkpoint loader. It reduces temporary model loading work;
+landmarks, masks, fitting and camera calculations are unchanged. Low Memory and
+Automatic fallback retain copy loading because the experimental assign/offload
+combination increased Windows private allocation. See the
+[camera-loading measurements and scope](PERFORMANCE.md#vggt-camera-checkpoint-loading).
 Offloading may be slower and use more RAM; masks, landmarks and fitting retain
 their existing bounded settings. The shared allocator budget and system-memory guard
 still apply; shorten the common clip or reduce input views yourself if needed.

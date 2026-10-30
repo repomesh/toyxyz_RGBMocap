@@ -91,8 +91,8 @@
     },
     {
       "path": "docs/AGENT_GUIDE.md",
-      "bytes": 21841,
-      "sha256": "475ca8a1ce0706c0937bd89080a509c6eb61934cf4b4e22b86ed2996b3ce0973"
+      "bytes": 22518,
+      "sha256": "d5155575064bc3d71d73fb1e118799156c37362843f53d7838a88cbaa41a9fe6"
     },
     {
       "path": "docs/BUILD.md",
@@ -101,8 +101,8 @@
     },
     {
       "path": "docs/MAMMA.md",
-      "bytes": 22348,
-      "sha256": "87e50f7cbcc0b1bf1a683039c7f3cb1388fb928dc5667e79ba2964d75065b9e5"
+      "bytes": 22810,
+      "sha256": "45d5b2284e97d7b296884c67155ffd2099a286e93f389fe003818bb4d93f230c"
     },
     {
       "path": "docs/MAMMA_AGENT_SETUP.md",
@@ -111,8 +111,8 @@
     },
     {
       "path": "docs/PERFORMANCE.md",
-      "bytes": 11860,
-      "sha256": "d945c44e31393092d5b116f34323562495d2f79ec8203e7a9d90b537d669a226"
+      "bytes": 13717,
+      "sha256": "607e9be394e7b8b3f9c2e818106de238a469eb71db9b519da2ba9ddc13a0cd6c"
     },
     {
       "path": "docs/USER_GUIDE.md",
@@ -121,8 +121,8 @@
     },
     {
       "path": "docs/VALIDATION.md",
-      "bytes": 42142,
-      "sha256": "abc00662fc334b6a5c49a712a37d9fa8610e3926c5cf6b9072268be0dc8381ce"
+      "bytes": 43972,
+      "sha256": "280e254eeea78bbcf08f52a2d09d182767c1e52883a34047b1d99729dab7ef23"
     },
     {
       "path": "docs/images/rgbmocap-workspace.png",
@@ -136,8 +136,8 @@
     },
     {
       "path": "docs/models/FLOWHMR.md",
-      "bytes": 7457,
-      "sha256": "4934536f41a3821c9039e300a5aec96b2ac256b8a97e7f952c851f693392cdac"
+      "bytes": 8023,
+      "sha256": "425d7ce85725569dd6ff5e179be1d9fa56c3f5ec34682e447784efe3b6b4bc01"
     },
     {
       "path": "docs/models/GVHMR.md",
@@ -1216,8 +1216,8 @@
     },
     {
       "path": "mocap/gpu_offload.py",
-      "bytes": 3099,
-      "sha256": "278b8b4c935d8ee01527e481a58566c618d7b7997cf479be2100982af2eedeef"
+      "bytes": 3784,
+      "sha256": "10ffb66c23b82aa9cc01dbb285222ce99b8bb10995258c877639ac2dd67e33ac"
     },
     {
       "path": "mocap/gui.py",

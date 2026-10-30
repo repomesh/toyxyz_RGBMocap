@@ -622,3 +622,31 @@ and measured zero remaining allocation. This is not a model leak or a guarantee
 of zero CUDA context memory. No new runtime packages or clean-PC tests were added.
 Source syntax, manifest hashes, local documentation links and publishable file
 composition were checked; private tests, assets and logs remain outside the repo.
+
+## Automatic VGGT meta/assign loading (2026-10-30)
+
+Only the camera-only fast loader now uses meta initialization and direct
+checkpoint assignment. Low Memory and its Automatic retry retain copy loading
+and the existing block offloader; generic depth loading keeps its previous path.
+No packages, model precision, sampled frames or camera equations changed.
+
+The preceding independent component study ran 14 configurations across the Flow
+and MAMMA Python runtimes. Camera pose encodings, intrinsics and extrinsics were
+exact; six real load/infer/close cycles and one controlled failure cleared model
+references and hooks. See [the measured scope](PERFORMANCE.md#vggt-camera-checkpoint-loading).
+
+App integration used copied private data, not user projects. FlowHMR's actual
+camera worker processed a 60-frame moving-camera clip with old/new fast loading,
+Low Memory and one deliberately injected CUDA transfer OOM. All numerical camera
+arrays were exact. The OOM test observed meta/assign on the first attempt, disposal
+of that model, then non-meta copy loading on the Low Memory retry. MAMMA's separate
+runtime processed its camera/capture worker from cached masks/landmarks for a
+30-frame, two-view clip. Old fast, new fast and Low Memory produced exact world
+cameras, estimated scale and calibration YAML. No new mask/landmark/body fitting,
+full-motion quality, Blender or clean-PC test is claimed for this loader change.
+
+Those seven camera-worker runs passed. Two additional checks confirmed a FlowHMR
+camera cache hit loads no VGGT model and Static Camera still skips VGGT with zero
+recorded GPU allocation. Five focused loader checks covered fast/Low Memory
+selection, unchanged generic depth routing, missing checkpoint rejection and
+unmaterialized-meta rejection. Test files, raw logs and assets stay outside the repo.

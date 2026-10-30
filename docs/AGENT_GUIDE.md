@@ -120,6 +120,15 @@ GPU allocator limits share ComfyUI's external-use margin: 600 MiB on Windows, 70
 
 ### Measured savings and acceleration
 
+`gpu_offload.load_vggt` uses meta initialization plus `assign=True` only for the
+camera-only fast path. Preserve copy loading for Low Memory (including Automatic
+fallback/retry) and generic depth loading. The Low Memory assign experiment
+increased Windows private allocation despite slightly lower working set. Require
+all checkpoint tensors to be materialized before device transfer; do not fill
+missing meta tensors with guessed values. Camera outputs must remain unchanged.
+This is a loader optimization for FlowHMR/MAMMA VGGT, not a new precision mode or
+a global loading policy for the other models. See [its measurements](PERFORMANCE.md#vggt-camera-checkpoint-loading).
+
 Use [PERFORMANCE.md](PERFORMANCE.md) for recorded conditions and current applied
 methods, and [older processing records](USER_GUIDE.md#recorded-processing-time-and-vram)
 for historical long-clip observations. Do not present old timings as a current

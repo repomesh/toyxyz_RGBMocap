@@ -67,10 +67,21 @@ def load_vggt(checkpoint, device, camera_only=True, low_memory=False):
     import gc
     import torch
     from vggt_omega.models import VGGTOmega
-    model = VGGTOmega(enable_depth=not camera_only).eval()
+    # Only the validated camera-only fast path skips disposable initial weights.
+    # Low Memory retains copy loading: assign-backed offload increased Windows
+    # private allocation in the paired tests. Keep generic depth loading intact.
+    meta_assign = camera_only and not low_memory
+    if meta_assign:
+        with torch.device('meta'):
+            model = VGGTOmega(enable_depth=False).eval()
+    else:
+        model = VGGTOmega(enable_depth=not camera_only).eval()
     state = torch.load(checkpoint, map_location='cpu', mmap=True, weights_only=False)
     if camera_only:state = {k:v for k,v in state.items() if not k.startswith('dense_head.')}
-    model.load_state_dict(state)
+    if meta_assign:model.load_state_dict(state, assign=True)
+    else:model.load_state_dict(state)
+    if meta_assign and any(t.is_meta for t in (*model.parameters(), *model.buffers())):
+        raise RuntimeError('VGGT camera checkpoint left uninitialized tensors. Repair its checkpoint or runtime.')
     del state
     gc.collect()
     if low_memory:model._mocap_offload = BlockOffload(model, device)

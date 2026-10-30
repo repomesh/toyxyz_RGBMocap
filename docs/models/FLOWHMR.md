@@ -76,6 +76,14 @@ overlap. This does not change the Fast SAM switches, resolution or precision.
 
 ### Measured effects
 
+Automatic's VGGT camera-only loader skips temporary initial weights using meta
+initialization and direct checkpoint assignment. A paired camera-component test
+reduced loading from **7.24 to 2.34 s**, with identical camera outputs and peak
+allocated VRAM; peak RAM working set fell **8.88 to 5.40 GiB**. Low Memory and
+Automatic fallback retain the previous loader, avoiding the experimental increase
+in Windows private allocation. This does not change SAM or motion inference.
+See [loading measurements and scope](../PERFORMANCE.md#vggt-camera-checkpoint-loading).
+
 Measured on Windows with RTX 5090 32 GB, Ryzen 9 9950X and 96 GB RAM.
 The rows use different stages/baselines; do not combine their speedups.
 
