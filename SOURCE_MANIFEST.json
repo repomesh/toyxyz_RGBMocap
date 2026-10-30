@@ -96,8 +96,8 @@
     },
     {
       "path": "docs/AGENT_GUIDE.md",
-      "bytes": 28473,
-      "sha256": "db6dfe045441fe432739e13563b9952e25267903808237725063a34273e7c8a6"
+      "bytes": 28748,
+      "sha256": "efdb3f9793fee6a6f94d5ae0a22a8f877f12f8c47e5966e6cd26168dc6810018"
     },
     {
       "path": "docs/BUILD.md",
@@ -126,8 +126,8 @@
     },
     {
       "path": "docs/VALIDATION.md",
-      "bytes": 45987,
-      "sha256": "805354466c96b54799b2714b645c7c254c7eaa42b10c5036e2aca09e2f6cc63c"
+      "bytes": 47178,
+      "sha256": "2375b9be585f97c16e07ec3314f1b5cf7ae7aec6a811d07340872bcdd8a9887d"
     },
     {
       "path": "docs/images/rgbmocap-workspace.png",
@@ -151,8 +151,8 @@
     },
     {
       "path": "docs/models/PROMPTHMR.md",
-      "bytes": 11760,
-      "sha256": "0b2e28c29f2345213a79053bce2b376ca989518210b87c729db389dc9a7dfba1"
+      "bytes": 12912,
+      "sha256": "a5ab49e4d11a9209c9e16bda68af81256c8772dbf686a37baa5b0e3158493a26"
     },
     {
       "path": "docs/models/README.md",
@@ -1496,8 +1496,8 @@
     },
     {
       "path": "mocap/prompthmr_publish.py",
-      "bytes": 10029,
-      "sha256": "fef2e37215b24469dd9905065859f4419b4ea1a6381ecd7e62e118f96c80c825"
+      "bytes": 11220,
+      "sha256": "f6db793dee88db0187b2fc38962d9ef149b5282cda0db46ccf825053e49ba08c"
     },
     {
       "path": "mocap/prompthmr_runtime.py",
@@ -1511,8 +1511,8 @@
     },
     {
       "path": "mocap/prompthmr_ui.py",
-      "bytes": 6173,
-      "sha256": "8a7cc807431a14884e5ed83f62056d9a1d127592e55618a4eb9996cd86af694d"
+      "bytes": 6608,
+      "sha256": "6f0b3eb8375208991cde4af8055bafc6b44c1f63a549e12c6d18d2ea95e10148"
     },
     {
       "path": "mocap/queue_groups.py",

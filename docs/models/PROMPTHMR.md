@@ -106,8 +106,9 @@ from an arbitrary machine or edit registration files to mark them Ready.
   post-optimization are retained. The app does not independently space or
   rescale actors. Progress/activity and cancellation use the normal worker UI.
 - SMPL-X body motion is generated. The official video settings used here
-  **do not generate animated fingers**. Hand contact correction is not finger
-  inference.
+  **do not generate animated fingers**. Missing zero-matrix hand placeholders
+  are replaced with the registered body's fixed relaxed hand pose. Hand contact
+  correction is not finger inference.
 - Check People rows to show/hide actors and select a row to edit contacts.
   **Enable Correction** switches original/corrected motion. **Apply Correction**
   does not rerun PromptHMR and refreshes linked characters. Correction may
@@ -151,6 +152,24 @@ were 31 ms median, 47 ms at the 95th percentile and 47 ms maximum. Three repeate
 opens kept handle/thread counts stable. This short check does not establish
 universal playback performance or leak freedom. Fresh two-second inference/export
 smoke tests also passed for ExMR, FlowHMR and GVHMR. See [validation](../VALIDATION.md).
+
+### Refreshing older finger poses
+
+Earlier results could contain a fixed, severely curled hand: the upstream video
+path filled missing finger rotations with zero matrices, which became 120-degree
+rotations during axis-angle conversion. The app now treats these as missing
+hands and uses a fixed registered-neutral pose. Native inference files remain
+unchanged; this is not newly inferred finger animation.
+
+For an existing result showing the legacy notice, keep the original video,
+models and settings, then **Reconstruct 3D**. A verified native inference cache
+is reused and the app republishes motion, correction and export previews; a
+missing or changed cache can require inference. **Prepare Preview** alone does
+not replace already published hand parameters. No runtime reinstall is needed.
+
+Two short two-person clips (32 and 85 frames) were checked. Body/root/shape and
+corrected-body tensors remained exact, body/wrist joint positions were unchanged,
+and four Blender FBX imports retained fixed local finger rotations.
 
 ## Files and agent/developer guide
 

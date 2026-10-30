@@ -116,8 +116,11 @@ runtime isolation.
 
 Native inference, published actors, corrections and exports have separate
 generations/receipts. Never load untrusted cached pickles or independently
-reposition actors. Only the flat hand-mean representation is converted for the
-shared SMPL-X evaluator; native joint positions are preserved. Optional contact
+reposition actors. Valid native hands use the flat-hand-mean representation conversion. Zero-matrix
+hand placeholders from the untracked video path use fixed registered-neutral
+hands instead of the invalid 120-degree conversion. Preserve body/root/wrist
+motion and the native raw result. Older published finger poses need Reconstruct
+3D with a verified inference cache; Prepare Preview alone does not republish them. Optional contact
 correction is a subsequent intentional pose change. Preserve other runtimes.
 
 ### MAMMA setup and verification

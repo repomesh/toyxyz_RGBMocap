@@ -49,8 +49,12 @@ class PromptHMRWorkspace:
             from .prompthmr_runtime import configuration
             configuration()
             if self.project is not None:
-                saved=json.loads((self.project/'project.json').read_text(encoding='utf8')).get('prompthmr_options',{})
+                state=json.loads((self.project/'project.json').read_text(encoding='utf8'));saved=state.get('prompthmr_options',{})
                 if saved!=self.prompthmr_options():message='People/interaction settings changed. Reconstruct 3D to apply; previous motion is still displayed.'
+                elif state.get('pipeline',{}).get('model')=='prompthmr':
+                    receipt=self.project/'prompthmr_source.json'
+                    if receipt.is_file() and not json.loads(receipt.read_text(encoding='utf8')).get('native',{}).get('hand_pose_policy'):
+                        message='Legacy PromptHMR finger placeholders. Reconstruct 3D to refresh hands; verified inference caches will be reused.'
         except (OSError,ValueError,RuntimeError) as error:
             message=str(error);self.run_button.setEnabled(False)
         self.prompthmr_notice.setText(message);self.prompthmr_notice.setVisible(bool(message))

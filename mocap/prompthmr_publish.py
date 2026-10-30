@@ -6,8 +6,21 @@ from .storage import atomic_json,sha256
 from .result_artifacts import file_stat
 
 
-def convert(params,body,indices):
-    """Convert flat-mean upstream hands to the app's native SMPL-X convention."""
+def hand_policy(person):
+    """Zero matrices in the video path are missing hands, not rotations."""
+    rotations=np.asarray(person['smplx_cam']['rotmat'])
+    if rotations.shape!=(len(person['frames']),55,3,3):raise ValueError('Invalid PromptHMR rotation dimensions.')
+    hands=rotations[:,25:]
+    absent=np.all(hands==0,axis=(-1,-2))
+    if absent.all():return 'registered-neutral-untracked-v1'
+    if absent.any() or not np.isfinite(hands).all():raise ValueError('Inconsistent PromptHMR hand rotations.')
+    if not np.allclose(np.linalg.det(hands),1.,atol=1e-3) or not np.allclose(hands@hands.swapaxes(-1,-2),np.eye(3),atol=1e-3):
+        raise ValueError('Invalid PromptHMR hand rotations.')
+    return 'native'
+
+
+def convert(params,body,indices,*,neutral_hands=False):
+    """Rebase valid native hands; use registered neutral for missing video hands."""
     import torch
     pose=np.asarray(params['pose'],dtype=np.float32)[indices]
     betas=np.asarray(params['shape'],dtype=np.float32)
@@ -18,6 +31,11 @@ def convert(params,body,indices):
         left_hand_pose=torch.from_numpy(pose[:,75:120].copy())-body.left_hand_mean.detach().cpu(),
         right_hand_pose=torch.from_numpy(pose[:,120:165].copy())-body.right_hand_mean.detach().cpu(),
         betas=torch.from_numpy(betas[indices].copy()),transl=torch.from_numpy(trans.copy()))
+    if neutral_hands:
+        # The shared evaluator adds the registered relaxed hand mean. Supplying
+        # zero coefficients here gives a fixed neutral hand without inventing
+        # tracked motion or converting the upstream zero matrices into angles.
+        result['left_hand_pose'].zero_();result['right_hand_pose'].zero_()
     if not all(torch.isfinite(v).all() for v in result.values()):raise ValueError('Non-finite PromptHMR pose.')
     return result
 
@@ -63,6 +81,7 @@ def publish(job,emit):
     K=np.array([[focal*sx,0,center[0]*sx],[0,focal*sy,center[1]*sy],[0,0,1.]])
     people=[];projects=[]
     for number,(track_id,person) in enumerate(tracks,1):
+        hands=hand_policy(person)
         frames=np.asarray(person['frames'],dtype=np.int64);observed=np.asarray(person.get('detected',np.ones(len(frames))),dtype=bool)
         if frames.shape!=(len(person['smplx_world']['pose']),) or observed.shape!=frames.shape or np.any(np.diff(frames)<=0) or (frames<0).any() or (frames>=n).any():
             raise ValueError('Invalid PromptHMR actor frame mapping.')
@@ -78,14 +97,14 @@ def publish(job,emit):
             state=dict(common,frames=end-first,start=job['start']+first/30,end=job['start']+end/30,
                 timeline=dict(start=job['start']+first/30,step=1/30,frames=end-first),people_root=os.path.relpath(group,project),
                 person_id=number,person_frames=[first,end],workspace_root=os.path.relpath(root,project))
-            native=dict(raw=file_stat(work/'results.pkl'),range=[first,end],track_id=str(track_id),body=file_stat(BY_KEY['smplx'].path),adapter=sha256(Path(__file__)))
+            native=dict(raw=file_stat(work/'results.pkl'),range=[first,end],track_id=str(track_id),body=file_stat(BY_KEY['smplx'].path),adapter=sha256(Path(__file__)),hand_pose_policy=hands)
             receipt=project/'prompthmr_source.json';reuse=False
             try:
                 old=json.loads(receipt.read_text(encoding='utf8'));reuse=old['native']==native and old['output']==file_stat(project/'hmr4d_results.pt')
             except (OSError,ValueError,KeyError):pass
             atomic_json(project/'project.json',state)
             if not reuse:
-                params=convert(person['smplx_world'],body,positions);incam={k:v.clone() for k,v in params.items()}
+                params=convert(person['smplx_world'],body,positions,neutral_hands=hands!='native');incam={k:v.clone() for k,v in params.items()}
                 pelvis=body.J_regressor.numpy()[0]@body.v_template.numpy()+np.einsum('v,vci,bi->bc',body.J_regressor.numpy()[0],body.shapedirs.numpy(),params['betas'].numpy())
                 r=transform[:3,:3];t=transform[:3,3]
                 incam['global_orient']=torch.from_numpy(Rotation.from_matrix(r@Rotation.from_rotvec(params['global_orient'].numpy()).as_matrix()).as_rotvec().astype('float32'))
@@ -93,7 +112,7 @@ def publish(job,emit):
                 logits=np.asarray(person['smplx_cam']['static_conf_logits'],dtype=np.float32)
                 if logits.shape!=(len(frames),6) or not np.isfinite(logits).all():raise ValueError('Missing or invalid native PromptHMR contact confidence.')
                 save_tensor(dict(smpl_params_global=params,smpl_params_incam=incam,
-                    net_outputs=dict(static_conf_logits=torch.from_numpy(logits[positions].copy())[None]),source_model='prompthmr'),project/'hmr4d_results.pt')
+                    net_outputs=dict(static_conf_logits=torch.from_numpy(logits[positions].copy())[None]),source_model='prompthmr',hand_pose_policy=hands),project/'hmr4d_results.pt')
                 atomic_json(receipt,dict(version=1,native=native,output=file_stat(project/'hmr4d_results.pt')))
             if not (project/'input.mp4').exists():
                 if first==0 and end==n:media_link(group/'input.mp4',project/'input.mp4')

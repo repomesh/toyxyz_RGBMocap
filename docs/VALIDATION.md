@@ -680,3 +680,23 @@ unmaterialized-meta rejection. Test files, raw logs and assets stay outside the 
 - Test programs, source videos, model weights and outputs were kept outside the
   public source file list. Restricted upstream PromptHMR source is downloaded
   locally by setup, rather than bundled into the source distribution.
+
+
+## PromptHMR untracked hand placeholders (2026-10-31)
+
+The pinned native video path writes zero 3×3 matrices for all 30 untracked finger
+joints. They are not rotation matrices; subsequent axis-angle conversion produced
+a fixed 120-degree rotation at every joint. Earlier native-mesh equivalence checks
+preserved that invalid posture and did not establish a valid hand default.
+
+Publication now uses the registered relaxed hand mean for this all-zero missing
+hand case, while keeping raw native inference files intact. Valid native hand
+rotations keep their prior conversion; inconsistent invalid matrices are rejected.
+Receipts record the hand policy. Older published results show a refresh notice.
+
+Private copies of two two-person clips (32 and 85 frames) were republished from
+cached inference. Original and corrected body/root/shape tensors were exact;
+the first 22 body/wrist joint positions were unchanged. Four original/corrected
+FBXs imported into Blender with 52 bones and 30 finger bones. Local finger
+rotation variation across the 32 frames was zero. Source projects/raw caches were
+not changed. The runtime and AI inference calculations were not modified.
