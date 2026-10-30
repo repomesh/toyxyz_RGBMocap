@@ -99,7 +99,7 @@ def prepare(path, job):
     # All connector code contributes, not just the model prediction script.
     from .paths import ROOT
     from .storage import sha256
-    identity['code']={name:sha256(ROOT/'mocap'/name) for name in ('mamma_pipeline.py','mamma_camera.py','mamma_inputs.py')}
+    identity['code']={name:sha256(ROOT/'mocap'/name) for name in ('mamma_pipeline.py','mamma_camera.py','mamma_inputs.py','memory_mode.py','gpu_offload.py')}
     token=hashlib.sha256(json.dumps(identity,sort_keys=True).encode()).hexdigest()[:24]
     slot=job['root']/'mamma'/'inference'/token
     cached=False
@@ -308,6 +308,9 @@ def main(argv=None,engine=None):
             torch.backends.cuda.matmul.allow_tf32=False;torch.backends.cudnn.allow_tf32=False
             if not torch.cuda.is_available():raise RuntimeError('MAMMA requires a supported CUDA GPU.')
             free,total=torch.cuda.mem_get_info();torch.cuda.set_per_process_memory_fraction(gpu_memory_fraction(free,total))
+            if args.stage!='mamma_camera':
+                from .memory_mode import select_stage
+                select_stage(args.stage,free,total,job['frames'],emit)
             work=work_for(job)
             if args.stage=='mamma_masks':masks(engine,work,job)
             elif args.stage=='mamma_landmarks':landmarks(engine,work,job)
@@ -320,5 +323,9 @@ def main(argv=None,engine=None):
         return 0
     except Exception as error:
         traceback.print_exc()
-        emit('failed',message=str(error))
+        message=str(error)
+        if isinstance(error,MemoryError) or 'out of memory' in message.lower():
+            from .memory_mode import GUIDANCE
+            message='Processing ran out of memory and stopped safely. '+GUIDANCE
+        emit('failed',message=message)
         return 1

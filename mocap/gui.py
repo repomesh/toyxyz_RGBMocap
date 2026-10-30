@@ -44,6 +44,8 @@ STAGES.update(people='Find People',person='Prepare Person Motion')
 STAGES.update(flow_camera='Estimate Scene Camera / VGGT-Omega', flow_features='Extract Body and Hand Features / SAM', flowhmr='Reconstruct Motion / FlowHMR', flow_export='Prepare FlowHMR Preview and FBX', import_model='Import Model')
 STAGES.update(exmr_preprocess='ExMR Body, Hand and Foot Keypoints',exmr_features='ExMR Body and Hand Features',exmr='Reconstruct Motion / ExMR')
 
+STAGES.update(flow_batch='Process FlowHMR Motion',exmr_batch='Process ExMR Motion',gvhmr_batch='GVHMR Multi-person',features='GVHMR Image Observations')
+
 class ModelDownloadDialog(QDialog):
     """Readable, selectable provider instructions with bounded scrolling."""
     def __init__(self, parent, key, manager=None):
@@ -467,6 +469,8 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
         self.import_character_action.setEnabled(not self.busy and not self.contact_saving)
         self.flow_sampling.setEnabled(not self.busy)
         self.fast_sam.setEnabled(not self.busy)
+        self.flow_acceleration.setVisible(self.fast_sam.isChecked())
+        self.flow_acceleration.setEnabled(not self.busy)
         self.exmr_camera.setEnabled(not self.busy)
         self.exmr_smoothing.setEnabled(not self.busy)
         self.analyze_button.setVisible(tool.key=='gvhmr')
@@ -638,6 +642,8 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
             self.setWindowTitle('RGB MoCap | Motion Workspace')
             self.flow_sampling.setCurrentIndex(self.flow_sampling.findData(0))
             self.fast_sam.setChecked(True)
+            self.flow_batch4.setChecked(True)
+            self.flow_gpu_crop.setChecked(True)
             self.exmr_camera.setCurrentIndex(0)
             self.exmr_smoothing.setChecked(True)
             self.handflow_refine.blockSignals(True)
@@ -727,8 +733,11 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
         self.setWindowTitle('RGB MoCap | '+(saved_root.name if saved_root else 'Motion Workspace'))
         pipeline = manifest.get("pipeline", {})
         from .flow_camera import saved_interval
-        from .flow_sam import saved_fast_sam
-        self.fast_sam.setChecked(saved_fast_sam(project,manifest))
+        from .flow_sam import saved_options
+        flow=saved_options(project,manifest)
+        self.fast_sam.setChecked(flow['fast_sam'])
+        self.flow_batch4.setChecked(flow['sam_batch4'])
+        self.flow_gpu_crop.setChecked(flow['sam_gpu_crop'])
         from .exmr_options import saved as saved_exmr
         exmr=saved_exmr(project,manifest)
         self.exmr_camera.setCurrentIndex(self.exmr_camera.findData(exmr['static_camera']))
@@ -968,7 +977,7 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
         if tool.key=='flowhmr' and self.people_root is not None:
             from .storage import atomic_json
             path=self.people_root/'project.json';state=json.loads(path.read_text(encoding='utf-8'))
-            state['flow_options']={**state.get('flow_options',{}),'camera_interval':self.flow_sampling.currentData(),'fast_sam':self.fast_sam.isChecked()}
+            state['flow_options']={**state.get('flow_options',{}),**self.selected_flow_options()}
             atomic_json(path,state)
         refine = bool(tool.refinement) and self.htd_refine.isChecked()
         foot = tool.key=='gvhmr' and self.footmr_refine.isChecked()
@@ -1152,8 +1161,13 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
             frames=int(arguments[arguments.index('--end-frame')+1])-int(arguments[arguments.index('--first-frame')+1])
         model=arguments[arguments.index('--model')+1] if '--model' in arguments else ''
         result=arguments[arguments.index('--result')+1] if '--result' in arguments else self.active_result
-        key=(stage,tool,frames,model,result,self.compute_mode.currentData(),self.fast_sam.isChecked(),self.flow_sampling.currentData(),self.exmr_camera.currentData())
+        key=(stage,tool,frames,model,result,self.compute_mode.currentData(),self.fast_sam.isChecked(),self.flow_batch4.isChecked(),self.flow_gpu_crop.isChecked(),self.flow_sampling.currentData(),self.exmr_camera.currentData())
         if not isinstance(estimate,(int,float)) or not math.isfinite(estimate) or not 1<=estimate<=7*86400:estimate=None
+        if stage in ('flow_batch','exmr_batch','gvhmr_batch'):
+            from .queue_groups import argument
+            items=json.loads(argument(arguments,'--batch-items'))
+            key=(*key,argument(arguments,'--batch-phase'),tuple((item['project'],item['result']) for item in items),len(items))
+            estimate=None
         estimate=self.task_state.history.get(key,estimate)
         return key,estimate
 
@@ -1170,7 +1184,14 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
             else:
                 self.progress.setRange(0,1000);self.progress.setValue(round(1000*current/total))
 
+    def cleanup_batch_request(self):
+        from .queue_groups import remove_request
+        path=getattr(self,'_batch_request',None);self._batch_request=None
+        try:remove_request(path)
+        except OSError as error:self.log.append('Could not remove worker request: '+str(error))
+
     def next_job(self):
+        self.cleanup_batch_request()
         self.guard_timer.stop()
         self.processing_guard = None
         if not self.jobs or self.failed or self.cancelled:
@@ -1228,13 +1249,16 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
             else:
                 self.next_character_refresh()
             return
+        from .queue_groups import join_single_pipeline
+        self.jobs = join_single_pipeline(self.jobs, self.project)
         stage, arguments = self.jobs.pop(0)
         if stage in {'gvhmr', 'refine', 'footmr', 'handflow', 'correct',
                      'flow_camera', 'flow_features', 'flowhmr',
                      'exmr_preprocess', 'exmr_features', 'exmr'}:
             self._batch_has_motion = True
-        if stage.startswith('mamma_'):self._batch_has_motion=True
+        if stage.startswith('mamma_') or stage in ('flow_batch','exmr_batch','gvhmr_batch'):self._batch_has_motion=True
         self.current_stage = stage
+        self._batch_inner_stage=stage
         if arguments is None:
             arguments = ["--project", str(self.project)]
         elif stage in {"export", "footmr", "handflow", "correct", 'flow_export'} and "--project" not in arguments:
@@ -1255,6 +1279,14 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
         self.task_timer.start();self.update_task_progress()
         self.progress.setRange(0, 0)
         self.buffer = ""
+        if stage in ('flow_batch','exmr_batch','gvhmr_batch'):
+            from .queue_groups import write_request
+            try:
+                self._batch_request=write_request(stage,arguments)
+            except (OSError,ValueError) as error:
+                self.failed=True;self.log.append(str(error));self.status.setText('Cannot prepare people processing: '+str(error))
+                self.next_job();return
+            arguments=['--request',str(self._batch_request),'--project',str(self.job_project)]
         command = worker_command(stage, *arguments)
         self.process = QProcess(self)
         self.process.setWorkingDirectory(str(ROOT))
@@ -1264,6 +1296,8 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
         environment.insert("RGB_MOCAP_COMPUTE_MODE", self.compute_mode.currentData())
         environment.insert('RGB_MOCAP_FLOW_INTERVAL',str(self.flow_sampling.currentData()))
         environment.insert('RGB_MOCAP_FLOW_FAST_SAM','1' if self.fast_sam.isChecked() else '0')
+        environment.insert('RGB_MOCAP_FLOW_BATCH4','1' if self.flow_batch4.isChecked() else '0')
+        environment.insert('RGB_MOCAP_FLOW_GPU_CROP','1' if self.flow_gpu_crop.isChecked() else '0')
         environment.insert('RGB_MOCAP_EXMR_OPTIONS',json.dumps({'static_camera':self.exmr_camera.currentData(),'smoothing':'global' if self.exmr_smoothing.isChecked() else 'none'}))
         self.process.setProcessEnvironment(environment)
         self.process.readyReadStandardOutput.connect(self.read_stdout)
@@ -1295,7 +1329,7 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
                 path=self.job_project/'project.json'
                 try:
                     state=json.loads(path.read_text(encoding='utf-8'))
-                    state.setdefault('stages',{})[self.current_stage]={'status':'failed','error':message}
+                    state.setdefault('stages',{})[self._batch_inner_stage]={'status':'failed','error':message}
                     atomic_json(path,state)
                 except (OSError,ValueError) as error:self.log.append('Could not save stopped stage: '+str(error))
 
@@ -1324,7 +1358,13 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
         if self.people_event(event):
             self._queued_task_estimates=[self.task_descriptor(s,a) for s,a in self.jobs]
             self.update_task_progress();return
-        if kind=='mamma_ready':
+        if kind=='batch_item_start':
+            self.job_project=Path(event['project']);self._batch_inner_stage=event['stage']
+            self._task_actor=f"Actor/take {event['index']}/{event['count']}"
+            self.task_state.update(dict(current=0,total=0,phase=f"batch:{event['phase']}:{event['index']}",message='Loading actor data'),time.monotonic())
+            self.status.setText(self._task_actor+' · '+STAGES.get(event['stage'],event['stage']))
+            self.update_task_progress()
+        elif kind=='mamma_ready':
             self.workspace_root=Path(event['root'])
             self.load_project(Path(event['project']))
             self.set_active_result(event['result'])
@@ -1345,6 +1385,8 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
         elif kind == 'save_cancelled':
             self.cancelled=True
             self.status.setText(event['message'])
+        elif kind == 'resource_mode':
+            self.log.append(event['message'])
         elif kind == "progress":
             message=event.get('message','Processing...')
             self.log.status_terminal(message)
@@ -1360,9 +1402,9 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
             self.failed = True
             self.task_timer.stop();self.task_info.setText('Failed')
             self.status.setText("Processing failed. " + event.get("message", "See the console for details."))
-            self.log.write_terminal(self.status.text())
+            self.log.append(self.status.text())
         elif kind == "complete":
-            self.task_state.cached|=bool(event.get('cached',False))
+            if not event.get('batch_inner'):self.task_state.cached|=bool(event.get('cached',False))
             self.log.append(f"{STAGES.get(event['stage'])}: {event.get('elapsed', 0):.2f} s · {event.get('output')}")
         self.log.ensureCursorVisible()
 
@@ -1390,10 +1432,12 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
                 self.process = None
             self.jobs.clear()
             self.cleanup_fbx_export()
+            self.cleanup_batch_request()
             self.cleanup_project_save()
             self.failed = True
             self.busy = False
             self.finish_single_tracking()
+            self.finish_people_jobs()
             self.status.setText("Cannot start the processing engine. Check the app installation.")
             self.update_readiness()
 

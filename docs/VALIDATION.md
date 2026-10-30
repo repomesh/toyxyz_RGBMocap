@@ -127,7 +127,7 @@ interactive playback, standalone MMD playback or testing on other GPUs.
   The old FlowHMR/ExMR fixed 3/2 GiB deductions and extra 95/90% caps are removed.
   ComfyUI's separate 0.8 GiB inference planning allowance is not another allocator
   deduction: weights, activations and temporary buffers share the allowed budget.
-  This does not implement ComfyUI's offloading or guarantee free memory against
+  This margin alone does not implement offloading or guarantee free memory against
   other applications or non-PyTorch allocations.
 - Boundary checks covered simulated 4/8/12/15/16/24/32 GiB capacities, the exact
   15 GiB transition, exhausted free memory and all four allocator call sites.
@@ -397,3 +397,228 @@ Four-second CMD playback samples across the four models measured 29.74–29.82 f
 with frame-interval p95 34.71–35.04 ms and maxima 35.86–36.73 ms. Video/3D and
 mesh/video frame differences were zero. GVHMR finished one queued frame just
 after Stop; a separate settled two-second pause recorded zero skin dispatches.
+
+### Automatic / Low Memory routing (2026-10-30)
+
+Fresh independent runs on the tested Windows/RTX 5090 PC covered both modes:
+ExMR and FlowHMR each processed 60 frames through correction and export; GVHMR
+also ran HTD, FootMR and HandFlow. MAMMA processed two synchronized views,
+two people and 30 frames through fresh masks, landmarks, VGGT, fitting and
+correction. Existing separate pinned runtimes were reused, not reinstalled.
+FlowHMR's Original SAM (Fast SAM off) also completed both modes on an independent
+eight-frame feature-extraction fixture.
+
+Automatic selected fast paths with spare GPU memory. Allocator-budget tests
+selected Low Memory and completed ExMR preprocessing at 3.9 GiB, body/hand
+features at 4.5 GiB, FlowHMR camera at 3.5 GiB, and SAM features/motion at 3 GiB.
+A real fast-loading CUDA OOM was released and retried once successfully in
+Low Memory. ExMR features at 4.1 GiB still failed safely with memory advice;
+the batch remained 8. These are caps on a 5090, not validation of real 3–4 GiB
+GPUs. Models and full-sequence context can still exceed available memory.
+
+Automatic versus Low Memory body-joint differences in the three single-video
+samples were at most 0.84 mm before correction and 0.53 mm after correction;
+separate inference runs are not bit-identical. MAMMA camera matrices and both
+actors' sampled exported joints/rotations were identical in this comparison.
+Ten corrected-source FBX files imported in Blender 4.5 with 52 Hips-root bones,
+bone-only animation and sampled positions within 0.2 mm of committed frames.
+Seven policy/retry/hook-lifecycle checks and actual Console/CMD mirroring passed;
+the saved Automatic selection was retained. A short hook test does not prove
+long-run leak freedom. Playback/rendering code was unchanged in this revision.
+
+ExMR Sapiens peak PyTorch allocation decreased from 5.68 to 3.10 GiB; combined
+body/hand feature-stage peak decreased from 5.15 to 3.87 GiB. These exclude
+driver/display allocations. Low Memory can increase elapsed time and host RAM;
+single-pass cold-start timings are not speed benchmarks. Precision, frame count,
+resolution, temporal context and fitting iterations were retained. RAM/Windows
+allocation-headroom monitoring remains a stop condition. Test scripts, weights,
+logs, motion and temporary fixtures remain outside the publishable checkout.
+
+### FlowHMR Fast SAM acceleration controls (2026-10-30)
+
+The app now saves two independent, default-on switches for bounded four-frame
+batching and GPU hand crops. Four combinations completed a real 60-frame input
+with 30 valid pelvis anchors each. Against both switches off, final joint-position
+differences were 0.21 mm at the 95th percentile / 1.52 mm maximum for batching,
+and 1.23 mm / 2.45 mm with both switches on. These measure output disagreement,
+not ground-truth accuracy. The separate earlier short-clip speed tests remain
+the basis of the tooltip estimates; this integration check is not a new paired
+speed benchmark.
+
+Peak PyTorch allocation was 3.44 GiB without batching and 3.84 GiB with batching.
+A seven-frame Low Memory run used one-frame batches with GPU crops and peaked
+at 1.92 GiB. Original SAM completed three frames with acceleration flags ignored.
+One-, two- and three-frame partial batches completed with finite outputs. CUDA
+calls are not claimed bit-identical. Precision, crop resolution and the 20-step
+FlowHMR generator were retained. No new packages or runtime installation were
+needed; no forced physical OOM test was performed in this integration check.
+
+Qt checks covered defaults, all four saved option combinations, busy-state
+disablement, Fast SAM off, and all four model pages at short/tall window heights.
+The settings use consistent top-down spacing and scroll when needed; hidden
+model pages no longer reserve the tallest page's height. Test files and logs
+remain outside the app checkout.
+
+
+## Sequential multi-person model reuse (2026-10-30)
+
+The app now groups ExMR, FlowHMR and GVHMR actor/take jobs by supported stage.
+One model serves actors sequentially, with explicit actor paths and separate
+receipts. GVHMR runs its observation and core phases in one worker, closing each
+model scope before the next phase. Optional HTD, FootMR and HandFlow keep their
+existing separate workers. Single-actor jobs keep their previous queue.
+
+App-path measurements on the documented Windows RTX 5090 PC used two tracked
+people with 60 and 45 frames at 30 fps and static cameras. Timings include feature
+and core worker startup, excluding discovery, camera estimation, correction,
+export and optional add-ons. These are one-trial observations, not universal
+speedups; import and filesystem warm-up vary.
+
+| Model | Separate actor workers | Stage reuse | Peak PyTorch allocated VRAM, before → after |
+| --- | ---: | ---: | ---: |
+| FlowHMR | 108.69 s | 65.34 s | 3.84 → 3.84 GiB |
+| ExMR | 161.08 s | 106.51 s | 5.68 → 5.68 GiB |
+| GVHMR | 56.02 s | 22.97 s | 2.82 → 2.82 GiB |
+
+All six fixed-input actor/model comparisons were tensor-exact. With fresh image
+preprocessing, maximum joint differences against the preceding experiment were
+0.344 mm for FlowHMR, 0.242 mm for ExMR and zero for GVHMR; upstream preprocessing
+roundoff is not a claim of improved or degraded accuracy.
+
+Sixteen unit checks covered model lifetime, replacement, error cleanup, allocator
+budgeting, OOM retry, queue ordering, bounded requests and path/runtime validation.
+Real workers checked cache hits without model construction, two-frame Low Memory
+feature extraction for FlowHMR/ExMR, Original SAM, corrupt ExMR hand-feature
+recovery, and correction/derived export for all three models. The app writer also
+saved three binary FBX files; Blender reimport was not repeated for this change.
+A controlled real CUDA allocator OOM in a separate 1%-capped test process recovered
+once in Low Memory and ended with zero allocated tensor bytes. This is not a
+full-model OOM stress test on another GPU.
+
+Actual GUI QProcess runs checked repeated cached queues and cancellation during
+actor B, followed by reuse of completed actor A and reconstruction of B. A 20 ms
+GUI timer had a recorded worst delay of 45 ms during that cancellation/retry test;
+this measures offscreen event-loop responsiveness, not viewport FPS. Repeat checks
+were short and do not establish universal leak freedom. GVHMR retained a stable
+32 MiB PyTorch allocation between phases and its worker then exited. No new
+runtime packages or changes to the pinned runtime registry were needed. Private
+fixtures, model links and test scripts remain outside the application checkout.
+
+## Pipeline and CPU preparation follow-up (2026-10-30)
+
+A separate Windows RTX 5090 experiment retained the pinned runtimes, native
+precision, batch sizes, resolution and temporal context. Two trials reversed
+execution order; stages released their model before the next stage loaded.
+AI worker times include startup and saved results but exclude discovery,
+camera estimation, correction and export.
+
+| Model / people | Separate phase workers, two trials | Connected phases, two trials | Peak allocated VRAM |
+| --- | ---: | ---: | ---: |
+| FlowHMR / 1 | 58.65, 53.33 s | 41.12, 44.18 s | 3.84 GiB in both |
+| ExMR / 1 | 84.83, 82.88 s | 46.32, 46.99 s | 5.68 GiB in both |
+| ExMR / 2 | 94.90, 90.76 s | 52.78, 53.81 s | 5.68 GiB in both |
+
+Inputs were 60 frames for one actor and 60+45 frames for two actors, at 30 fps
+and 720x1280. FlowHMR's two-person connected-phase benefit was smaller than
+trial variability, so its existing multi-person phase grouping was retained.
+Short-clip startup gains do not predict the same percentage on long footage.
+
+Warm per-stage tests used those clips plus a separate 120-frame 1080x1920 clip,
+each processed twice: 450 frames per variant. CPU preparation ahead by at most
+two batches reduced total measured Sapiens time from 11.53 to 8.63 s, ExMR body
+features from 18.57 to 13.75 s, and hand features from 7.50 to 5.63 s. Flow Fast
+SAM changed from 42.96 to 40.79 s. Peak CUDA allocation was unchanged and sampled
+RAM growth was small. ExMR final body-readout omission alone took 16.63 s; with
+preparation overlap it took 13.15 s. The analogous hand-readout omission had no
+clear benefit and was not adopted. These stage gains cannot be added together
+to claim a whole-job speedup.
+
+Sapiens and hand features were tensor-exact; ExMR body features differed by up
+to 4.8e-6, versus 3.9e-6 on baseline repeats. Optimized final motion differed by
+at most 0.83 mm / 0.306 degrees for FlowHMR and 0.88 mm / 0.068 degrees for ExMR.
+Baseline repeats also differed, by up to 0.77 mm / 0.217 degrees and 0.69 mm /
+0.047 degrees respectively. This is an output-preservation check without ground
+truth, not a claim of improved or degraded tracking accuracy. Fixed feature
+inputs produced tensor-exact motion when phases were connected.
+
+Automatic CPU preparation is limited to one producer and two prepared batches,
+with an additional 256 MiB prepared-storage estimate. It is disabled in Low
+Memory or with insufficient CPU/RAM headroom. Existing OOM recovery and actual
+system-memory monitoring remain active. No new runtime packages were added.
+
+The integrated app code passed 25 focused policy/lifetime checks and five
+tensor-exact grouped-versus-independent motion comparisons on fixed features.
+Real one-/two-person worker runs verified model release and cached reruns without
+loading a model. Offscreen GUI QProcess checks covered automatic single-person
+phase joining, cancellation in the second actor's body extraction and retry
+using completed preprocessing. A 20 ms GUI timer had a maximum observed delay
+of 44.92 ms during that cancellation/retry run; this is not a viewport FPS test.
+Eight-frame real clips checked Low Memory for FlowHMR/ExMR and FlowHMR Original
+SAM. A damaged private ExMR hand-feature cache recovered without recomputing
+valid body features. Correction and binary FBX saving were checked for both
+models; Blender reimport was not repeated for this optimization.
+
+## Contact correction v9: coherent root and swing transitions (2026-10-30)
+
+Cached-source regression covered ten sequences / 10,121 actor frames: two
+MAMMA actors, ExMR slow motion and stairs, FlowHMR long motion and backflip,
+GVHMR dance, and pushups from all three single-video models. No AI inference
+was rerun. Contact timings and stance ankle targets were retained. This is a
+correction comparison without motion-capture ground truth.
+
+The planner now joins swing targets to the final root-shifted free trajectory,
+fades its extra target adjustment at the free boundary, and evaluates a smooth
+floor-clearance constraint inside the root search. Native anatomical IK still
+publishes leg rotations once. Existing 1,024-frame cores, four-second halos,
+2 cm planning budgets, 60-evaluation cap, source ankle frames and hand solver
+remain. Jacobian column scaling improves numerical conditioning. An exhausted
+planning window is reported explicitly; it is not a convergence claim.
+
+For the first MAMMA actor, pooled knee short-period RMS fell from 0.935 to
+0.332 degrees (64.5%); the second fell from 0.390 to 0.329 degrees (15.6%).
+The identified free-leg join's added bend step fell from +14.22 to -0.41
+degrees. Short-period RMS subtracts a nine-frame degree-two Savitzky-Golay
+trace; it is a diagnostic, not ground-truth error. Source-relative knee
+second-difference RMS decreased on all ten sequences. Individual metrics do
+not all improve: backflip total short-period RMS increased by about 2%, and
+the stairs' worst added step increased by about 0.23 degrees. Residual source
+noise, incompatible/unreachable pins and rapid intended movement remain.
+
+MAMMA full-contact skinned sole height error stayed within 1.36 mm; across the
+other tested foot contacts it stayed within 1.14 mm. Stance ankle positions
+changed by less than 0.001 mm, fixed lengths and source ankle orientation were
+retained, and torso world rotations were preserved. Hand timings and arm-only
+behavior were checked; existing unreachable-palm residuals remain explicitly
+reported. The backflip retained 103 contact-free flight poses exactly. Manual
+intervals, disabled feet, empty timings, one-frame bypass and native window
+sizes 64 versus 1,024 were checked. Two-, three- and seven-frame contact clips
+remained finite. An intentionally exhausted planning cap produced its warning.
+
+CPU correction-only measurements, excluding body sampling, hands, inference,
+rendering and export: the MAMMA pair changed from 1.42 to 1.07 s (sum of three-run
+medians); the long FlowHMR case increased from 1.34 to 1.53 s. Other long cases
+were faster in these runs. Sampled process peak working set stayed below
+300 MiB for these numeric-input tests; this is not whole-app RAM usage. No GPU
+allocation or additional dependency is introduced by this change.
+
+A separate copied MAMMA project completed the installed correction, preview
+and binary FBX workers. Ordinary Blender 4.5 import checked all 422 frames,
+52 bones, rest transforms, terminal tips and sampled half frames: maximum
+joint error 0.0044 mm and fractional rotation error 0.0028 degrees against the
+committed export. This was not a new playback-cadence or clean-install test.
+User projects were not recalculated or replaced; Apply Correction is required
+to obtain the new result. Private fixtures and media are outside the checkout.
+
+## Final pre-publication review (2026-10-30)
+
+Rechecked the 25 queue/prefetch/model-lifetime tests, four-model settings layouts,
+Fast SAM option persistence and a real GUI connected-worker cache rerun. Current
+correction code also passed the short-clip, contact/flight and installed-versus-
+isolated checks above. Two-actor application-worker smoke tests completed for
+FlowHMR, ExMR and GVHMR using private projects; these included fresh ExMR/GVHMR
+processing and a FlowHMR cache hit. GVHMR retained 32 MiB of cuBLAS workspace
+after releasing its model: a separate diagnostic cleared that library workspace
+and measured zero remaining allocation. This is not a model leak or a guarantee
+of zero CUDA context memory. No new runtime packages or clean-PC tests were added.
+Source syntax, manifest hashes, local documentation links and publishable file
+composition were checked; private tests, assets and logs remain outside the repo.

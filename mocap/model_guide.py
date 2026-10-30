@@ -1,4 +1,4 @@
-"""Compact model comparison using the same recorded seven-second clip."""
+"""Compact model comparison with recorded input and measurement conditions."""
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QDesktopServices, QTextOption
 from PySide6.QtWidgets import QApplication, QDialog, QHBoxLayout, QPushButton, QTextBrowser, QVBoxLayout
@@ -6,10 +6,13 @@ from .motion_tools import MOTION_TOOLS
 
 # exmr-eval-2026-10-22/summary-body.json, clip_01 (210 frames at 30 fps).
 # Historical processing-only runs; FlowHMR predates Fast SAM.
+# MAMMA: separate 413-frame/three-view manual run (SAM 2.1, VGGT, two people).
+# Time includes correction/preview; memory is measured across four inference workers.
 BENCHMARKS = {
-    'gvhmr': ('2m 01s', '5.08', '12.47'),
-    'flowhmr': ('2m 49s', '14.89', '22.19'),
-    'exmr': ('1m 08s', '11.32', '19.31'),
+    'gvhmr': ('7s<br>1 video', '2m 01s', '5.08', '12.47'),
+    'flowhmr': ('7s<br>1 video', '2m 49s', '14.89', '22.19'),
+    'exmr': ('7s<br>1 video', '1m 08s', '11.32', '19.31'),
+    'mamma': ('13.8s<br>3 videos<br>2 people', '11m 52s', '6.47', '9.11'),
 }
 PROJECT_URLS = {
     'mamma': 'https://mamma.is.tue.mpg.de/',
@@ -42,18 +45,19 @@ th { text-align:left; background-color:#333333; } td, th { padding:7px; }
 <h3>Choosing a model</h3>
 <p>These are subjective observations from our test videos, not a universal ranking or accuracy benchmark.
 Try another model if a particular movement looks wrong.</p>""" + descriptions + """
-<h3>Recorded speed test: HIGHEST BACKFLIP · 7 seconds</h3>
-<table width="100%" border="0" cellspacing="1" cellpadding="7">
-<tr><th>Model</th><th>Processing time</th><th>Peak VRAM (GiB)</th><th>Peak RAM (GiB)</th></tr>""" + rows + """</table>
+<h3>Recorded processing time and memory</h3>
+<table width="98%" border="0" cellspacing="1" cellpadding="7">
+<tr><th>Model</th><th>Input</th><th>Processing time</th><th>Peak VRAM (GiB)</th><th>Peak RAM (GiB)</th></tr>""" + rows + """</table>
 <p>Test PC: RTX 5090 32 GB · Ryzen 9 9950X · 96 GB RAM.</p>
 <p>GVHMR: HTD + FootMR + HandFlow on. FlowHMR: original SAM; today's Fast SAM can
-be faster. Recorded processing only, excluding tracking, app correction and export.
-Memory shows measured worker peaks, not minimum requirements. Results vary by video and PC.</p>
-<h3>MAMMA: separate multi-view workflow</h3>
-<p>A manual app test with three 1080p-bounded camera videos, two people and 413 frames at 30 fps
-took 11m 52s through correction and preview on the test PC. Masks: 4m 18s; landmarks: 1m 30s;
-VGGT cameras: 14s; 3D fitting: 4m 54s; correction/preview: 32s. This is a different clip and workflow
-from the table above, so it is not a direct speed comparison. Start with a short common trim.</p>
+be faster. These three models used the same seven-second clip; their times exclude
+tracking, app correction and preview/export.</p>
+<p>MAMMA used a different clip: three synchronized videos resized within 1920×1080,
+two people and 413 frames at 30 fps. Its time includes preparation, correction and preview;
+memory covers masks, landmarks, VGGT and 3D fitting. This is not a direct speed comparison.</p>
+<p>VRAM is peak PyTorch allocated memory, not total GPU usage. Single-video RAM is peak
+private memory; MAMMA RAM is peak worker working set. These historical measurements predate
+the latest Low Memory changes and are not minimum requirements. Results vary by input and PC.</p>
 <p>All four support Motion Correction for foot and hand contacts. Contact correction reduces sliding;
 it is separate from tracking fingers or refining ankle angles.</p></body></html>"""
 

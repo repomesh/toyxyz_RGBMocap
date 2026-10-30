@@ -9,10 +9,14 @@ from .video import select_preview
 
 
 class ModelWorkspace:
+    def selected_flow_options(self):
+        return dict(camera_interval=self.flow_sampling.currentData(), fast_sam=self.fast_sam.isChecked(),
+                    sam_batch4=self.flow_batch4.isChecked(), sam_gpu_crop=self.flow_gpu_crop.isChecked())
+
     def workspace_settings(self):
         return dict(result=self.active_result,correction=self.selected_correction_options(),
             mamma_options=self.mamma_options(),
-            flow_options={'camera_interval':self.flow_sampling.currentData(),'fast_sam':self.fast_sam.isChecked()},
+            flow_options=self.selected_flow_options(),
             exmr_options={'static_camera':self.exmr_camera.currentData(),'smoothing':'global' if self.exmr_smoothing.isChecked() else 'none'})
 
     def restore_workspace_settings(self,settings):
@@ -26,6 +30,8 @@ class ModelWorkspace:
         flow=settings.get('flow_options',{})
         self.flow_sampling.setCurrentIndex(max(0,self.flow_sampling.findData(flow.get('camera_interval',0))))
         self.fast_sam.setChecked(flow.get('fast_sam',True))
+        self.flow_batch4.setChecked(flow.get('sam_batch4',True))
+        self.flow_gpu_crop.setChecked(flow.get('sam_gpu_crop',True))
         exmr=settings.get('exmr_options',{})
         self.exmr_camera.setCurrentIndex(self.exmr_camera.findData(exmr.get('static_camera',True)))
         self.exmr_smoothing.setChecked(exmr.get('smoothing','global')=='global')

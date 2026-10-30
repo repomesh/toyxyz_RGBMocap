@@ -227,6 +227,20 @@ Model weights remain in the app's model
 library. Trimming does not modify the original video. Processing uses a
 30 fps working clip; camera sampling does not reduce its motion frame count.
 
+When reconstructing several people or visible takes with ExMR, FlowHMR or
+GVHMR, RGB MoCap processes the same stage for each actor in turn using one loaded
+model, then releases it before the next stage. ExMR connects keypoint, body/hand
+features and motion phases in one worker. FlowHMR connects features and motion
+for one person; its multi-person jobs retain separate phase grouping. GVHMR keeps
+its observation and motion stages in one worker. Each actor keeps separate
+motion, contacts and exports. This reduces repeated model loading; it does not
+combine people into a larger GPU batch. Automatic and Low Memory still apply.
+Optional GVHMR refinement/add-ons use their existing separate workers.
+
+Automatic can overlap bounded CPU image preparation with GPU work when CPU/RAM
+headroom permits; Low Memory disables that prefetch. For measured worker-startup
+and feature-stage gains, see [resource modes and optimizations](PERFORMANCE.md).
+
 ## Choose a model
 
 Each model has a [detailed guide](models/README.md): [ExMR](models/EXMR.md),
@@ -269,7 +283,7 @@ Run **Setup_MAMMA.cmd** separately after the base installation; Model Manager >
 **Runtime Setup...** explains its compiler prerequisites, disk use and restricted
 licenses. Prepare the nine model assets through Model Manager. MAMMA detects and
 matches people during reconstruction, so **Find person** is hidden. **People** can
-be Auto or a fixed count. Enter only the number in **Reference Height (m)**; this
+be **0** for automatic detection or a fixed count. Enter only the number in **Reference Height (m)**; this
 sets approximate VGGT scale and is unused with metric camera calibration.
 For example, enter `1.70` for 170 cm; it does not force all actors to the same
 height. Input videos must already start in sync and show the same performance.
@@ -278,27 +292,42 @@ The app uses SAM 2.1 and FP32 fitting; SAM 3.1 research tests remain separate.
 
 ## Recorded processing time and VRAM
 
-Historical measurements on the tested PC above (30 fps inputs, October 2026),
-recorded before the current Git-based installation was tested.
-Each duration uses the same input across all three models.
+Historical measurements on the tested PC above (30 fps inputs, October 2026).
+Each single-video duration uses the same input across ExMR, FlowHMR and GVHMR.
+MAMMA uses a different multi-view clip and includes more processing stages;
+its row is not a direct speed comparison. These records predate the latest
+Low Memory changes.
 
-| Video length | Model | Processing time | Peak VRAM (GiB) |
-| --- | --- | ---: | ---: |
-| 7 seconds | ExMR | 1m 08s | 11.32 |
-| 7 seconds | FlowHMR | 2m 49s | 14.89 |
-| 7 seconds | GVHMR | 2m 01s | 5.08 |
-| 15 seconds | ExMR | 1m 47s | 11.32 |
-| 15 seconds | FlowHMR | 5m 16s | 10.79 |
-| 15 seconds | GVHMR | 2m 45s | 5.08 |
-| 25.7 seconds | ExMR | 1m 44s | 11.32 |
-| 25.7 seconds | FlowHMR | 7m 32s | 10.67 |
-| 25.7 seconds | GVHMR | 3m 00s | 5.08 |
+For mode comparisons and the latest applied acceleration, see
+[measured memory savings and speedups](PERFORMANCE.md). Those tests use different
+clips and timing scopes from this historical table.
 
-Times cover the recorded model-processing stages, excluding shared person
+| Video length | Model | Input videos | Processing time | Peak VRAM (GiB) | Peak RAM (GiB) |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 7 seconds | ExMR | 1 | 1m 08s | 11.32 | 19.31 |
+| 7 seconds | FlowHMR | 1 | 2m 49s | 14.89 | 22.19 |
+| 7 seconds | GVHMR | 1 | 2m 01s | 5.08 | 12.47 |
+| 15 seconds | ExMR | 1 | 1m 47s | 11.32 | 19.31 |
+| 15 seconds | FlowHMR | 1 | 5m 16s | 10.79 | 16.97 |
+| 15 seconds | GVHMR | 1 | 2m 45s | 5.08 | 11.06 |
+| 25.7 seconds | ExMR | 1 | 1m 44s | 11.32 | 19.31 |
+| 25.7 seconds | FlowHMR | 1 | 7m 32s | 10.67 | 16.94 |
+| 25.7 seconds | GVHMR | 1 | 3m 00s | 5.08 | 12.42 |
+| 13.8 seconds | MAMMA | 3 | 11m 52s | 6.47 | 9.11 |
+
+For the three single-video models, times cover model-processing stages, excluding shared person
 tracking, app contact correction and preview/export. GVHMR includes HTD, FootMR
 and HandFlow. FlowHMR includes camera estimation and the original SAM path;
-these timings predate Fast SAM. VRAM is peak PyTorch **allocated** memory across
-workers, not total GPU usage or reserved memory. These are individual test runs,
+these timings predate Fast SAM. MAMMA used three synchronized videos resized
+within 1920×1080, two people, SAM 2.1 and VGGT, with 413 frames at 30 fps
+(13.77 seconds). Its 712.08-second total includes preparation, correction and
+preview; memory peaks cover the four inference stages. See the
+[MAMMA stage breakdown](MAMMA.md#recorded-processing-time-and-memory).
+
+VRAM is peak PyTorch **allocated** memory across workers, not total GPU usage
+or reserved memory. RAM for the single-video models is peak private memory;
+MAMMA RAM is peak worker working set. Neither is total system RAM usage.
+These are individual test runs,
 not minimum hardware requirements or predictions for every video. Resolution,
 camera motion, settings and available memory also affect results; a longer
 video does not always use more VRAM or take proportionally longer.
@@ -358,8 +387,8 @@ installation folder, beside the new **RGBMoCap.cmd**:
 Old installation/models/  →  New installation/models/
 ```
 
-For example, copy `D:\RGBMoCap-Old\models` into `E:\RGBMoCap` so the result is
-`E:\RGBMoCap\models`, not `E:\RGBMoCap\models\models`. Keep all subfolders,
+The destination must be `<new installation>/models/`, not
+`<new installation>/models/models/`. Keep all subfolders,
 configuration files, `.receipt.json` files and license files together. Copy
 first and keep the old files until the new installation works.
 
@@ -385,6 +414,7 @@ selected result is missing, reconstruct it; the app reports it as unavailable.
 | **ExMR → Camera** | Static Camera for a camera that stays still without zooming; Moving Camera / SimpleVO when it moves. |
 | **ExMR → Smooth Motion** | Reduce small changes between frames. Off keeps the unsmoothed result. |
 | **FlowHMR → Fast SAM** | Speed up body/hand image processing with the same model files. Small numerical differences can affect motion and automatic contacts. |
+| **FlowHMR → Fast SAM Acceleration** | Two independent, default-on switches: **4-Frame Batching** and **GPU Hand Crops**. Use them only with Fast SAM. Tooltips explain measured speed, VRAM and output differences; see the [FlowHMR guide](models/FLOWHMR.md#controls). Low Memory reduces the batch to one frame. Applies on Reconstruct 3D. |
 | **FlowHMR → Camera / Sampling** | Start with Moving / Unknown - Auto for moving or uncertain cameras. Static Camera skips camera estimation for locked footage. Explicit frame intervals control camera analysis only; denser sampling uses more memory. |
 | **GVHMR → HTD Refine** | Improve body-motion consistency over time. Runs before FootMR when both are enabled. |
 | **GVHMR → FootMR** | Refine ankle angles from foot observations. Separate from foot contact locking. |
@@ -394,7 +424,7 @@ selected result is missing, reconstruct it; the app reports it as unavailable.
 | **MAMMA → Import Camera Data...** | Import calibration with camera names matching video filenames without extensions, original pixel intrinsics and metric translations. See the exact [camera format](MAMMA.md#manual-cameras). |
 | **MAMMA → People** | Default 0 automatically detects people during reconstruction; set 1–8 if someone is missed or background people are included. Count each person once across all cameras. Find person is hidden. |
 | **MAMMA → Reference Height (m)** | Numeric approximate standing height, default 1.70 m. Sets VGGT scene scale, not every actor's height; unused with metric manual calibration. |
-| **Resource Mode** | For supported single-video stages, Automatic balances throughput and memory; Low Memory uses smaller image batches. MAMMA keeps its pinned processing settings and shared memory protections. |
+| **Resource Mode** | Automatic uses the fast path when GPU memory is sufficient and selects supported Low Memory paths when needed. Low Memory uses CPU loading/offloading and existing bounded image processing; it can be slower and use more RAM. The selection and reason appear in Console and the CMD window. |
 | **Prepare Preview** | Rebuild mesh/skeleton previews from existing motion without running the AI model again. Useful for older projects. |
 | **Cancel Job** | Stop queued processing; completed results are kept. |
 
@@ -412,9 +442,27 @@ Processing is allowed to start without a predicted RAM/VRAM minimum. While it
 runs, the app monitors actual available RAM and Windows allocation headroom.
 If either becomes low, it stops the processing job and shows the available memory
 in the error message. The app also reports actual CPU/GPU allocation failures.
-Completed stages are retained for retry. Low Memory can reduce supported batch
-sizes, but cannot guarantee that every model or video fits. A sudden large
+Completed stages are retained for retry. ExMR Low Memory prepares Sapiens' existing
+FP16 layers on CPU and loads body/hand weights on CPU before GPU transfer; its
+body/hand feature batches remain 8. FlowHMR Low Memory offloads SAM and VGGT
+transformer blocks. MAMMA Low Memory offloads VGGT camera blocks; its masks,
+landmarks and fitting retain their existing bounded settings. GVHMR and add-ons
+retain their adaptive image batches and full-context attention handling.
+Automatic chooses these paths per operation from the current GPU budget and
+can retry a supported operation once after CUDA OOM. It does not change the
+saved Automatic selection, precision, video resolution, frame count or fitting
+iterations. CPU offloading needs RAM: actual RAM shortage can still stop the job.
+No mode guarantees that every model or video fits. A sudden large
 allocation can still fail before the next monitor check.
+
+Low Memory primarily reduces **VRAM**, not system RAM. In earlier short paired
+checks, ExMR fell **5.68 → 3.87 GiB** allocated VRAM while RAM working set changed
+**11.88 → 11.94 GiB**; FlowHMR fell **6.10 → 2.77 GiB** while RAM rose
+**8.42 → 8.75 GiB**. GVHMR's short test had no meaningful whole-job saving.
+MAMMA's paired full-pipeline saving was not recorded; only the shared VGGT
+component has a controlled offload comparison. See [conditions, times and component measurements](PERFORMANCE.md).
+These are observations, not minimum requirements. The newest CPU prefetch is
+disabled in Low Memory; FlowHMR SAM also uses one-frame batches in that mode.
 
 GPU allocator budgets use ComfyUI's external-use margin: 600 MiB on Windows,
 or 700 MiB on GPUs larger than 15 GiB, subtracted from currently free VRAM.

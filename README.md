@@ -140,10 +140,25 @@ archives need additional space. See the [storage details](docs/USER_GUIDE.md#ins
 
 [Cache and project cleanup: paths and deletion effects](docs/USER_GUIDE.md#storage-and-cleanup).
 
+## Resources and speed
+
+Start with **Resource Mode > Automatic**. It uses the fast supported path when
+memory permits and falls back to Low Memory when needed. **Low Memory** trades
+loading/transfers for lower VRAM use; system RAM may increase.
+
+Short paired tests reduced peak allocated VRAM from **5.68 to 3.87 GiB** for ExMR
+and **6.10 to 2.77 GiB** for FlowHMR. Separate short-clip tests of connected
+processing phases cut worker time by **44% for ExMR** and **24% for FlowHMR**,
+with unchanged measured peak VRAM. These are different tests, not full-job
+speed guarantees. See [resource modes, measured savings and acceleration](docs/PERFORMANCE.md)
+for conditions, per-model results and output differences.
+
 ## Documentation
 
 - [User guide: installation, controls and settings](docs/USER_GUIDE.md)
 - [Model guides: files, defaults, options and limitations](docs/models/README.md)
+- [Recorded processing time, VRAM and RAM](docs/USER_GUIDE.md#recorded-processing-time-and-vram)
+- [Resource modes and measured optimizations](docs/PERFORMANCE.md)
 - [MAMMA: additional installation, model files and multi-video workflow](docs/MAMMA.md)
 - [Development and builds](docs/BUILD.md)
 - [Agent operating and development guide](docs/AGENT_GUIDE.md)

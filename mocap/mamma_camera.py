@@ -47,19 +47,22 @@ def infer(work,job,emit):
             if not cv2.imwrite(str(path),im):raise OSError('Cannot prepare a VGGT input image.')
             paths.append(str(path));sizes.append((w,h,_balanced_target_shape(h/w,512,16)));camera_ids.append(c)
     emit('progress',current=0,total=0,message=f'VGGT: estimate {len(entries)} fixed cameras from {len(paths)} background images')
-    model=VGGTOmega(enable_depth=False).eval()
-    state=torch.load(BY_KEY['flow_vggt'].path,map_location='cpu',mmap=True,weights_only=False)
-    model.load_state_dict({k:v for k,v in state.items() if not k.startswith('dense_head.')})
-    del state;gc.collect();model=model.cuda()
-    images=load_and_preprocess_images(paths,mode='balanced',image_resolution=512).cuda()
-    with torch.inference_mode():
-        prediction=model(images);E,K=encoding_to_camera(prediction['pose_enc'],images.shape[-2:])
-    E=E[0].cpu().numpy();K=K[0].cpu().numpy();H,W=images.shape[-2:]
+    from .memory_mode import run as memory_run
+    from .gpu_offload import load_vggt,release
+    def predict(low):
+        model=load_vggt(BY_KEY['flow_vggt'].path,'cuda',low_memory=low)
+        try:
+            images=load_and_preprocess_images(paths,mode='balanced',image_resolution=512).cuda()
+            with torch.inference_mode():
+                prediction=model(images);E,K=encoding_to_camera(prediction['pose_enc'],images.shape[-2:])
+            return E[0].cpu().numpy(),K[0].cpu().numpy(),*images.shape[-2:]
+        finally:release(model)
+    E,K,H,W=memory_run('MAMMA VGGT camera',predict,6.+.1*len(paths),emit)
     for i,(w,h,(hh,ww)) in enumerate(sizes):
         K[i,0,2]-=(W-ww)//2;K[i,1,2]-=(H-hh)//2
         K[i,0,:]*=w/ww;K[i,1,:]*=h/hh
     if not np.isfinite(E).all() or not np.isfinite(K).all():raise ValueError('VGGT returned invalid cameras.')
-    del model,images,prediction;gc.collect();torch.cuda.empty_cache()
+    gc.collect();torch.cuda.empty_cache()
     ci=np.array(camera_ids);RR=[];tt=[];KK=[]
     for c in range(len(entries)):
         es=E[ci==c];r=Rotation.from_matrix(es[:,:,:3]).mean().as_matrix()

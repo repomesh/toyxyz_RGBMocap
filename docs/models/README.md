@@ -46,10 +46,22 @@ all of its camera videos with **Save Project As**.
 Use **Resource Mode > Automatic** initially. Actual RAM/Windows allocation
 headroom monitoring, CUDA allocator budgets and allocation-error reporting remain
 active. More frames, pixels, people or views can increase work; no setting
-guarantees that every clip fits. Low Memory adjusts supported single-video
-batches; it does not select a reduced-view or lower-quality MAMMA preset.
+guarantees that every clip fits. Automatic selects supported Low Memory paths
+when the GPU budget is low; a supported operation can recover once after CUDA
+OOM. Low Memory uses CPU loading/offloading and existing bounded image batches,
+which can be slower and need more RAM. It does not reduce model precision,
+motion frame count or MAMMA view count/iterations. Decisions appear in Console
+and the CMD window.
 See [resources](../USER_GUIDE.md#model-and-processing-settings)
 and [measured validation scope](../VALIDATION.md).
+
+Low Memory primarily saves **VRAM**, not system RAM. Short paired mode checks
+measured ExMR at **5.68 → 3.87 GiB** and FlowHMR at **6.10 → 2.77 GiB** allocated
+VRAM; GVHMR's short test had no meaningful whole-job reduction. MAMMA's paired
+whole-pipeline VRAM saving was not recorded; only its shared VGGT offload
+component has a controlled comparison. See [measured savings and speedups](../PERFORMANCE.md)
+for RAM, timing, test scope and numerical differences. These figures are not
+minimum requirements or predictions for every clip.
 
 See the [user guide](../USER_GUIDE.md) for shared controls, contacts, retargeting,
 FBX/VMD export, storage and cleanup. For agent-assisted setup and diagnostics,

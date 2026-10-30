@@ -11,6 +11,35 @@ This guide is for agents helping users operate or modify RGB MoCap. It describes
 - For setup failure, read the message, check connectivity and free space, then retry `install.cmd`. Preserve models, projects and `.setup` state. Do not repeatedly reinstall or redownload models without evidence.
 - Base installation currently estimates at least 32.4 GiB free before models; the three single-video models and add-ons were previously measured around 29 GiB of weights. Optional MAMMA adds a separate runtime and model files; see [its setup guide](MAMMA.md). Project data and download caches add space. Measurements are not guarantees. See [user guide](USER_GUIDE.md#install).
 
+Multi-person reconstruction groups supported ExMR, FlowHMR and GVHMR phases
+into sequential, bounded worker requests. `mocap/queue_groups.py` builds the queue;
+`batch_worker.py` validates explicit project paths and runs one `ModelSession`
+per phase. ExMR connects its keypoint, body-feature, hand-feature and motion
+phases in one worker, for one or multiple actors. FlowHMR connects features and
+motion for one actor; its existing multi-person phase grouping remains separate.
+GVHMR runs its phases in one worker with a new closed scope for each.
+The session retains at most one model and clears transient tokens.
+It closes on completion/error; cancellation terminates the worker tree. Keep
+per-actor receipts and pending markers, separate runtimes, precision, full temporal
+context and optional add-on behavior intact. A fresh CUDA OOM recovery discards
+the cached model before its one supported Low Memory retry. Do not replace this
+with an indefinite global pool or parallel GPU workers.
+
+`mocap/batch_prefetch.py` overlaps CPU image preparation with inference using
+one producer thread and at most two prepared batches. Automatic enables it only
+with sufficient CPU/RAM headroom; Low Memory disables it. Prepared batch storage
+is additionally bounded by a 256 MiB estimate. Always close the producer before
+closing its video capture or retrying an operation. ExMR body feature extraction
+skips only the final unused pose readouts after the collected token is complete;
+keep intermediate pose feedback, keypoint-token updates and the generic SAM path.
+HaMeR's normal decoder/readout path remains intact. Do not change precision,
+batch size, resolution or temporal context to claim further speedups.
+
+This overlaps existing reads/crops; it does not introduce a persistent disk
+cache. The two prepared batches are in addition to the batch being consumed.
+The 256 MiB prepared-storage estimate is not a hard cap on whole-process RAM;
+retain actual memory monitoring and deterministic producer cleanup.
+
 ## Models and model files
 
 | Model | Practical use | Hands / options |
@@ -49,7 +78,7 @@ verification, registration and rollback, use the
 validate actual native CUDA operations. Do not overwrite a working runtime to
 test a new native module, or use cached inference as evidence of a new build.
 
-1. **File > Open Video**, optionally trim the Video track; select an AI Motion Model and prepare its models. New work defaults to ExMR.
+1. Select an AI Motion Model and prepare its models, then **File > Open Video** and optionally trim the Video track. Select MAMMA before opening multiple videos. New work defaults to ExMR.
 2. For single-video models with multiple people, use **Find person** and check the desired rows; without it, automatic tracking selects one person and can switch identity on overlap. MAMMA instead detects and matches people during reconstruction; Find person is hidden and its People setting controls the count. A checked row controls visibility and single-video processing targets; the selected row controls the current timeline and contact edits.
 3. Choose camera and processing settings, then **Reconstruct 3D**. Processing runs on a 30 fps working clip, without changing the original video. Progress and cancellation are in the app. **Prepare Preview** rebuilds previews from existing motion without rerunning inference.
 4. Review motion and contacts. **Enable Correction** selects corrected output; Foot defaults on and Hand off for new work. Flat Ground uses a common floor; Multi Level retains inferred contact heights and does not reconstruct terrain. Inspect automatic contacts; hand contacts represent support, not hanging/object tracking.
@@ -57,6 +86,15 @@ test a new native module, or use cached inference as evidence of a new build.
 6. **File > Export FBX** exports displayed applied source-person motion. Multiple checked people/takes produce separate named files. Source FBX uses a 52-bone Hips-root hierarchy; BVH files may exist internally but are not the public export option.
 
 See [the full workflow and controls](USER_GUIDE.md#start-here). Do not confuse viewport toggles, automatic detection and applied motion corrections. No general scene geometry or collision reconstruction is implied.
+
+Contact correction v9 joins free-foot transitions to the final planned root
+and evaluates floor clearance continuously inside the bounded trajectory plan.
+Keep stance anchors/timings and source ankle frames fixed; do not smooth final
+leg quaternions or add a second IK pass. The native anatomical solver remains
+the only publisher of leg rotations. Planning-limit warnings are real residual
+notices. Existing saved previews are not automatically replaced; use Apply
+Correction to recompute without inference. See the v9 measurements and limits
+in [validation](VALIDATION.md#contact-correction-v9-coherent-root-and-swing-transitions-2026-10-30).
 
 ## Character retargeting and export
 
@@ -76,9 +114,44 @@ See [the full workflow and controls](USER_GUIDE.md#start-here). Do not confuse v
 
 ## Resources and performance
 
-Use **Resource Mode > Automatic** by default. **Low Memory** uses smaller image batches in supported single-video stages; it is a separate choice, not a promise every clip will fit. MAMMA retains its pinned masks/landmark/fitting settings: Low Memory does not reduce its view count, fitting iterations or precision. GPU/CPU memory availability, resolution, clip duration and camera settings affect workloads. Model processing is not rejected using predicted RAM/VRAM requirements. The desktop checks actual available RAM and Windows allocation headroom every 0.5 seconds and stops the worker tree when these become low; actual allocation failures also produce an error. Close competing applications or shorten the clip after a memory-related stop. Keep genuine model frame limits, bounded buffers and adaptive batch/attention choices; do not silently change model quality or truncate motion. Avoid expensive AI reruns for operations that can use existing results.
+Use **Resource Mode > Automatic** by default. It keeps the fast path when the current GPU budget is sufficient and selects supported Low Memory paths per operation when needed. A supported fast operation that raises CUDA OOM is released and retried once in Low Memory. ExMR Low Memory uses CPU-first body/hand loading and converts Sapiens' existing FP16 layers before GPU transfer; ExMR body/hand batches stay 8. FlowHMR offloads SAM/VGGT blocks; MAMMA offloads VGGT camera blocks while retaining its pinned masks/landmark/fitting settings. GVHMR/add-ons retain adaptive image batches and full-context attention. The saved Automatic selection is not changed. Resource decisions and memory advice appear in the app Console and CMD. Model precision, frame count, resolution and iterations are not reduced. CPU loading/offloading can be slower and use more RAM; it is not a promise every clip will fit. Estimates select a path, never reject a job. The desktop still checks actual RAM and Windows allocation headroom every 0.5 seconds and stops workers when these become low. Preserve completed stages, genuine model limits and original motion. Do not rerun inference for operations that can use existing results.
 
-GPU allocator limits share ComfyUI's external-use margin: 600 MiB on Windows, 700 MiB above 15 GiB GPU capacity (400 MiB on other systems). Subtract it from actual free VRAM without an additional percentage cap or fixed FlowHMR/ExMR 3/2 GiB reserve. This margin is separate from inference working space, which stays inside the allocator budget. Do not copy ComfyUI's model offload or quality-changing policies into these models.
+GPU allocator limits share ComfyUI's external-use margin: 600 MiB on Windows, 700 MiB above 15 GiB GPU capacity (400 MiB on other systems). Subtract it from actual free VRAM without an additional percentage cap or fixed FlowHMR/ExMR 3/2 GiB reserve. This margin is separate from inference working space. Keep offloading in the app's validated `memory_mode.py` / `gpu_offload.py` adapters, without importing ComfyUI or changing model precision. Offload is inference-only, synchronous and unpinned; close hooks/models on success and failure. Actual RAM pressure remains a stop condition because offloading can increase host memory.
+
+### Measured savings and acceleration
+
+Use [PERFORMANCE.md](PERFORMANCE.md) for recorded conditions and current applied
+methods, and [older processing records](USER_GUIDE.md#recorded-processing-time-and-vram)
+for historical long-clip observations. Do not present old timings as a current
+release forecast. On the documented RTX 5090 PC:
+
+| Observation | Result and scope |
+| --- | --- |
+| ExMR Automatic → Low Memory | Allocated VRAM **5.68 → 3.87 GiB**, RAM working set **11.88 → 11.94 GiB**, **89.01 → 94.78 s**; earlier 60-frame app-mode check. |
+| FlowHMR Automatic → Low Memory | Allocated VRAM **6.10 → 2.77 GiB**, RAM **8.42 → 8.75 GiB**, **95.24 → 96.15 s**; earlier 60-frame app-mode check. |
+| GVHMR + add-ons, same short mode check | No meaningful whole-job saving: **4.204 → 4.203 GiB** allocated VRAM. Low Memory need not benefit a short job that already fits. |
+| MAMMA | Whole-pipeline paired VRAM saving was not recorded. Shared VGGT component offload saved **52%** allocated VRAM but took **3.3×** as long in warm inference; it is not whole-MAMMA offloading. |
+| Connected phase workers | One-person / 60-frame worker time fell **44% for ExMR**, **24% for FlowHMR**, with unchanged measured peak VRAM. Excludes discovery, cameras, correction and export. |
+| Bounded prefetch / warm feature stages | Flow Fast SAM about **5% less time**; ExMR Sapiens/hand about **25% less**, body with unused readouts omitted **29% less**. Similar VRAM, sometimes slightly more RAM. |
+
+The mode checks predate the latest acceleration. Low Memory saves GPU memory,
+not necessarily RAM; individual CPU-loaded models can add several GiB of host
+working set. Automatic selects a path per operation, not from a guaranteed
+whole-job capacity prediction. FlowHMR's Low Memory SAM batch is one even when
+the saved 4-Frame Batching box is on; its GPU Hand Crops selection is retained.
+The two Fast SAM switches default on for new work, preserve saved off settings,
+and only apply with Fast SAM. See [their separate measurements and output differences](PERFORMANCE.md#flowhmr-fast-sam-switches).
+
+When reporting new tests, keep inputs, model files, settings and timing scope
+fixed. Separate cold worker startup from warm inference, allocated from reserved
+VRAM, and working set from private/system RAM. Do not sum speedups from different
+baselines or use sampled worker peaks as whole-PC usage/minimum requirements.
+Fixed-feature motion was exact in the latest validation; fresh preprocessing
+had maximum joint differences below 0.9 mm, with baseline repeats also varying.
+The GPU-crop comparison is separate and reached 4.8 mm maximum. Neither measures
+accuracy against ground truth. Preserve these distinctions and numerical paths.
+Keep private benchmark projects, raw logs, account details, machine paths and
+licensed assets out of public documentation; publish only curated measurements.
 
 The app uses separate runtime profiles to maintain compatibility, with bounded batches, previews and background workers. Keep video decoding, large I/O and numerical work off the GUI thread. Playback responsiveness, synchronization and resource cleanup are correctness requirements. If changes affect these, measure frame-time outliers and repeated open/close behavior; do not infer universal performance from a short test.
 

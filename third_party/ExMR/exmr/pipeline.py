@@ -203,10 +203,10 @@ def _simplevo_rotations(video_path):
     return SimpleVO(progress=False)(video_path).numpy()
 
 
-def _run_model(data, options, fps, assets):
+def _run_model(data, options, fps, assets, model=None):
     from exmr.model.exmr import ExMR
 
-    model = ExMR.from_pretrained(assets.exmr, assets.smplx)
+    if model is None:model = ExMR.from_pretrained(assets.exmr, assets.smplx)
     inputs = {
         k: data[k][None].cuda()
         for k in ("kp2d", "bbx_xys", "K_fullimg", "cam_angvel", "body_feat", "hand_feat")

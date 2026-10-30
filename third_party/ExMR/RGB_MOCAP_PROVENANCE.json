@@ -3,5 +3,5 @@
   "commit": "f031badd0488bf5d50b8eba2e722c5a55f323e3f",
   "runtime": "Native Windows Python 3.12 / Torch 2.8.0+cu128",
   "weights_bundled": false,
-  "compatibility": "Bounded sequential loaders, local DINOv3 source, Unicode-safe OpenCV JPEG IO; network and native precision unchanged"
+  "compatibility": "Bounded sequential loaders, optional CPU-first body/hand loading and pre-transfer Sapiens FP16 conversion, local DINOv3 source, Unicode-safe OpenCV JPEG IO; explicit optional model injection and removable feature-token hooks for stage-scoped sequential actor reuse; network and native precision unchanged; bounded CPU batch prefetch; unused final body-pose readouts omitted only after collected decoder features, retaining intermediate feedback and the generic SAM path"
 }

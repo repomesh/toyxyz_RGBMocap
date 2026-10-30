@@ -98,7 +98,8 @@ class MammaWorkspace:
 
     def build_mamma_settings(self):
         page=QWidget();page.setProperty('motion_tool','mamma')
-        box=QVBoxLayout(page);box.setContentsMargins(8,0,8,0)
+        box=QVBoxLayout(page);box.setContentsMargins(0,0,0,0)
+        box.setSpacing(10);box.setAlignment(Qt.AlignTop)
         box.addWidget(QLabel('Camera Calibration'))
         self.mamma_camera_mode=QComboBox()
         self.mamma_camera_mode.addItem('VGGT (Automatic)','vggt')

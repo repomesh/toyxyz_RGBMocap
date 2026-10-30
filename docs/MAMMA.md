@@ -177,8 +177,48 @@ standalone tests remain separate. No quantization, TF32, iteration reduction or
 physics simulation is enabled in this path.
 
 Low Memory does not select smaller MAMMA camera sets, fewer fitting iterations
-or a lower-precision model. The shared allocator budget and system-memory guard
+or a lower-precision model. It keeps VGGT camera transformer blocks on CPU and
+transfers them for inference. Automatic uses the fast camera path when GPU memory
+is sufficient, selects offloading when needed, and can recover once from a camera
+CUDA OOM. Decisions and Low Memory advice appear in Console and the CMD window.
+Offloading may be slower and use more RAM; masks, landmarks and fitting retain
+their existing bounded settings. The shared allocator budget and system-memory guard
 still apply; shorten the common clip or reduce input views yourself if needed.
+
+## Applied acceleration and resource modes
+
+The supported path uses exact-coordinate ROI landmark preprocessing, CPU
+checkpoint loading and the supplied masks instead of an unnecessary landmark
+detector. It omits unused mask/collage/debug videos and reduces fitting
+diagnostics. VGGT samples up to three times per fixed camera at its 512 input
+setting and omits unneeded depth output. Matching completed inference is reused;
+contact edits and correction do not require another MAMMA inference.
+
+Earlier four-view, two-person, 30-frame tests on the RTX 5090 test PC measured:
+
+| Applied change | Stage time before → after | Time reduction |
+| --- | ---: | ---: |
+| Exact ROI preprocessing + CPU checkpoint loading, FP32 landmarks | 104.43 → 57.18 s | 45% |
+| Omit unused outputs during mask processing | 129.02 → 92.39 s | 28% |
+
+These isolated stage gains must not be added together or treated as a whole-job
+speedup. Reducing fitting diagnostics did not show a reliable fitting-stage gain.
+The latest ExMR/FlowHMR CPU prefetch and connected-worker changes do not apply
+to MAMMA, which already processes multiple people together.
+
+**Low Memory offloads VGGT only**, not the full landmark/fitting pipeline. A
+controlled shared-VGGT test with nine images from three cameras measured
+allocated VRAM **6.47 → 3.14 GiB** (52% less), RAM working set **8.75 → 8.85 GiB**,
+and warm inference **0.225 → 0.751 s** (3.3× as long). That is a camera-component
+measurement, not a 52% saving for all of MAMMA.
+
+A separate paired app-mode check used two views, two people and 30 frames:
+RAM was **8.15 → 8.12 GiB**, and total time **241.61 → 222.00 s**. Whole-pipeline
+VRAM was not recorded for that pair, so its VRAM saving is **not established**.
+Startup/cache variation affects these single-pass times; Low Memory is not a
+reliable speed improvement. It can require more RAM. The mode does not reduce
+views, fitting iterations or precision, and cannot guarantee that fitting fits.
+See [common benchmark conditions and memory definitions](PERFORMANCE.md).
 
 ## Manual cameras
 
@@ -202,7 +242,7 @@ does not calibrate a video; use VGGT when you do not have matching calibration.
 | `extrinsics_convention` | `"world_to_camera"`. |
 | `cameras` | Object containing one entry for every opened video. Each key must exactly match its filename without the extension: `A001.mp4` → `A001`. Remove unused camera entries when opening only a subset of views. |
 | `intrinsic_matrix` | 3×3 matrix `[[fx,0,cx],[0,fy,cy],[0,0,1]]`. Focal lengths `fx,fy` and optical center `cx,cy` are in pixels for the original input resolution. |
-| `extrinsics_matrix` | 3×4 matrix `[R | t]`, or 4×4 with last row `[0,0,0,1]`. `R` is a proper rotation; `t` is a translation in metres. Maps a world point to camera coordinates: `p_camera = R @ p_world + t`. |
+| `extrinsics_matrix` | 3×4 matrix `[R \| t]`, or 4×4 with last row `[0,0,0,1]`. `R` is a proper rotation; `t` is a translation in metres. Maps a world point to camera coordinates: `p_camera = R @ p_world + t`. |
 | `image_size` | `[width,height]` in pixels, matching the original opened video, not the app's resized working copy. |
 | `distortion_coeffs` | Optional `[k1,k2,p1,p2]` or `[k1,k2,p1,p2,k3]`. Omitted means zero. The current app adapter requires all zeros and undistorted pinhole footage. |
 
@@ -241,6 +281,29 @@ converts this to world-to-camera matrices. JSON uses the matrix convention above
 MAMMA's `configs/examples/captures/*.json` files describe input datasets and
 processing paths; they are **not camera calibration files** for this button.
 
+## Recorded processing time and memory
+
+On the tested RTX 5090 32 GB / Ryzen 9 9950X / 96 GB RAM PC, a manual app test
+used three synchronized camera videos resized within 1920×1080, two people,
+SAM 2.1 masks and automatic VGGT cameras. The common trim was 413 frames at
+30 fps (13.77 seconds).
+
+| Input length | Videos | People | Total through correction/preview | Peak VRAM (GiB) | Peak RAM (GiB) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 13.8 seconds | 3 | 2 | 11m 52s | 6.47 | 9.11 |
+
+Masks took 257.80 s, landmarks 89.72 s, cameras 14.42 s, 3D fitting 294.42 s,
+and correction/preview 31.97 s. The 712.08-second total also includes video
+preparation/startup. Peak VRAM is PyTorch allocated memory; peak RAM is worker
+working set, measured across masks, landmarks, cameras and fitting. They exclude
+unmeasured preparation/correction/preview peaks and are not whole-PC usage.
+No fatal traceback or OOM appeared in that log.
+
+This historical run predates the latest Low Memory changes. It uses different
+input and stages from the [single-video model records](USER_GUIDE.md#recorded-processing-time-and-vram),
+so it is not a direct speed ranking or a minimum hardware requirement. Camera
+count, resolution, clip length, people and hardware can change both time and memory.
+
 ## Saved data and limitations
 
 **Save Project As** copies all camera videos and project-private body data.
@@ -269,12 +332,9 @@ require reconstruction and leave the previous displayed motion in place.
 Occlusion, segmentation/identity mistakes, weak camera baselines and uncertain
 scale can still produce poor poses. Contact correction reduces sliding but does
 not repair lost identities, bad camera geometry or missing observations. This
-integration was tested on one Windows/NVIDIA PC. A three-view, two-person manual
-test processed 413 frames at 30 fps through correction/preview in **712.08 s**:
-masks 257.80 s, landmarks 89.72 s, cameras 14.42 s, fitting 294.42 s and final
-correction/preview 31.97 s; the remainder was video preparation/startup.
-No fatal traceback or OOM appeared in that log. This is one observation, not a
-speed guarantee. Clean Windows, other GPUs and the full 60-second limit have
+integration was tested on one Windows/NVIDIA PC; see the
+[recorded processing and memory](#recorded-processing-time-and-memory).
+Clean Windows, other GPUs and the full 60-second limit have
 not been validated.
 
 ## Updates and troubleshooting
