@@ -19,6 +19,7 @@ Select **ExMR > Model Manager** and prepare the listed files. Key assets are:
 | Asset | Location under the app's `models/` folder |
 | --- | --- |
 | ExMR weights | `exmr/exmr.safetensors` |
+| Official ExMR checkpoint metadata | `exmr/config.json` |
 | Sapiens2 pose weights | `exmr/sapiens2_1b_pose.safetensors` |
 | SMPL-X v1.1 neutral body | `body_models/smplx/SMPLX_NEUTRAL.npz` |
 | MANO right hand | `body_models/mano/MANO_RIGHT.pkl` |
@@ -27,6 +28,11 @@ Select **ExMR > Model Manager** and prepare the listed files. Key assets are:
 
 Model Manager also lists shared tracking dependencies. Use its exact supported
 files and import checks; do not substitute arbitrary checkpoint versions.
+**Download All** includes the small public `config.json` (180 bytes), or use
+**Auto Download** in the **ExMR configuration** row. The metadata and weights
+are pinned to the same official Hugging Face revision and verified by SHA-256.
+Manual Download and Import are also available. This is checkpoint metadata,
+not a file for changing the app's camera, smoothing or correction settings.
 Registered SMPL-X/MANO and gated SAM 3D Body files may require manual download.
 The shared `flowhmr` and `handflow` folder names do not mean you must run those
 models or enable GVHMR's HandFlow add-on. ExMR uses these assets directly.
@@ -99,3 +105,33 @@ or free resources if necessary. Historical [processing/VRAM measurements](../USE
 are individual runs, not minimum specifications. See [validation](../VALIDATION.md)
 for the tested PC and scope, and [licenses](../../THIRD_PARTY_NOTICES.md) for
 upstream restrictions.
+
+## Integrated upstream update
+
+The app uses ExMR v0.1.5's public input helpers and model API. Its toe IK target
+is limited to a 3 cm offset per axis from the network's target, reducing excessive
+ankle changes in the tested motions. Existing weights and the pinned ExMR runtime
+are reused. The app keeps its existing scene frame, camera sampling and shared
+contact-correction policy; the upstream Boolean foot-contact detector does not
+replace the app's automatic or manually edited lock timings.
+
+New reconstruction uses the updated solver and refreshes its result receipts.
+Opening an existing project does not automatically rerun inference or rewrite
+its saved motion. See [validation](../VALIDATION.md#exmr-public-api-and-bounded-toe-ik-2026-10-31)
+for the measured scope and limitations.
+
+## Citation
+
+[ExMR paper](https://arxiv.org/abs/2610.26213) · [Research citations and BibTeX](../CITATIONS.md#exmr)
+
+Please also credit FootMR and the original GVHMR work, as requested by the
+ExMR authors.
+
+```bibtex
+@Article{wehrbein26exmr,
+    author    = {Wehrbein, Tom and Rosenhahn, Bodo},
+    title     = {{ExMR}: Extremity Motion Refinement for Monocular Human Motion Capture},
+    journal   = {arXiv preprint arXiv:2610.26213},
+    year      = {2026},
+}
+```

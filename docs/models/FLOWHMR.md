@@ -114,3 +114,7 @@ can still exceed available memory. Historical [time/VRAM records](../USER_GUIDE.
 include camera estimation and predate Fast SAM; they are not predictions or
 minimum specifications. See [validation](../VALIDATION.md) and
 [upstream licenses](../../THIRD_PARTY_NOTICES.md).
+
+## Citation
+
+[FlowHMR paper](https://arxiv.org/abs/2610.03691) · [Research citations and BibTeX](../CITATIONS.md#flowhmr)

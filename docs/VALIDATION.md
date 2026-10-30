@@ -700,3 +700,74 @@ the first 22 body/wrist joint positions were unchanged. Four original/corrected
 FBXs imported into Blender with 52 bones and 30 finger bones. Local finger
 rotation variation across the 32 frames was zero. Source projects/raw caches were
 not changed. The runtime and AI inference calculations were not modified.
+
+
+## ExMR public API and bounded toe IK (2026-10-31)
+
+The integrated upstream source is v0.1.5, commit
+`57e4824b9c532b52ed1c8b12c44000ad41ef4c4c`, retaining the documented Windows,
+Low Memory, bounded prefetch and stage-scoped reuse adaptations. Public
+`hand_boxes`, `model_inputs`, `ExMR.from_pretrained` and direct model forward
+replace private pipeline calls. Upstream toe IK now limits its target offset to
+0.03 m per axis. Existing weights, runtime package pins and other model backends
+are unchanged.
+
+Only those numerical changes were adopted. The app keeps its existing world
+frame through an explicit local `normalize_world=False` option (generic upstream
+default remains enabled). The upstream Boolean foot-contact detector is not
+used by app correction. Shared contact code and manual timing precedence remain
+unchanged. Source/API/solver hashes invalidate outdated ExMR stage receipts;
+opening saved projects does not initiate reconstruction.
+
+- Seven cached-feature actor segments from five real scenes (997 actor frames)
+  produced tensor-exact camera/world parameters and static-confidence logits
+  against the independently verified toe-only reference. Scenes included two
+  dancers, burpees, stairs, moving-camera motion and two-person interaction.
+- Fresh 60- and 45-frame actors passed keypoint, body-feature, hand-feature and
+  motion stages in Automatic and Low Memory. Model instances were reused
+  sequentially within each phase and released on session exit. Observed stage
+  sums were 46.69 and 53.00 seconds; these single runs are not a controlled
+  speedup benchmark or universal performance promise.
+- Original/corrected meshes, paired shared cameras and shared-floor correction
+  completed. Eight actual app FBX exports imported in Blender 4.5 with 52 bones,
+  Hips root, finite bone-only keys and rest geometry distinct from animation.
+- The new SimpleVO JPEG-input path differed substantially on a moving-camera
+  sample. A small explicit frame-reader/count adapter retains the old canonical
+  video pixels without extracting another JPEG sequence. A 267-frame Unicode-path
+  test reproduced old rotations within 0.0000014 degrees; repeated calls reused
+  the cache without rewriting it. Neither estimate was scored against camera
+  ground truth.
+- Updated stale inference receipts recomputed successfully; an immediate repeat
+  hit the cache without rewriting motion. Changing the solver hash invalidated
+  the stage identity. Manual intervals remained authoritative when automatic
+  confidence was zero.
+
+The separate contact-policy comparison did not justify replacing shared contact
+detection. On the stairs segment, maximum frame-to-frame change of *added knee
+flexion* decreased from 3.553 to 1.983 degrees with the new toe IK and current
+contact policy, but rose to 4.114 degrees with the official Boolean timings used
+directly. This is not total knee jitter or error against motion ground truth.
+The body-height-only gate excluded just two frames across the tested segments;
+the existing large burpee transition remained. No blanket contact-quality claim
+is made. No clean Windows installation or second GPU was tested, and the other
+four models were not fully reinferred for this ExMR-only integration. Private
+test programs, footage, registered bodies and outputs remain outside the public
+source distribution.
+
+
+## Official ExMR checkpoint metadata (2026-10-31)
+
+Model Manager includes `ExMR configuration` (`models/exmr/config.json`, 180
+bytes), pinned to the same Hugging Face revision as the existing ExMR weights.
+Download All and the row's Auto Download use the official HTTPS endpoint and
+SHA-256 validation. Manual Download and Import use that same revision. It is
+checkpoint metadata; it does not alter model architecture or app settings.
+
+The actual download passed size/hash checks in an isolated data folder. A second
+call performed no network request or file rewrite. Invalid manual imports were
+rejected while preserving the valid file; a valid import succeeded. Offscreen
+Qt checks confirmed the row only appears for ExMR, changes to Ready after
+validation and leaves other model scopes unchanged. The development app also
+downloaded and verified its own copy. Test artifacts and model files remain
+outside the public source manifest. This metadata-only registration does not
+require a runtime reinstall or a new checkpoint.

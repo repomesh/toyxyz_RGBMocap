@@ -83,10 +83,14 @@ MODELS_LIST.extend([
           expected_sha256='45d60aa3b27ef9107a7afd4e00808f307fd91111e1cfa35afd5c4a62de264767'),
 ])
 SAM_MANUAL_FILES = {'flow_sam': 'model.ckpt', 'flow_sam_config': 'model_config.yaml', 'flow_mhr': 'assets/mhr_model.pt'}
+EXMR_REV = '8debd2e34262fcc63384f7e04d39ca784b0aec21'
 MODELS_LIST.extend([
     Model('exmr','Motion / ExMR','exmr/exmr.safetensors','https://huggingface.co/twehrbein/ExMR',minimum_bytes=235766520,
-          download_url='https://huggingface.co/twehrbein/ExMR/resolve/8debd2e34262fcc63384f7e04d39ca784b0aec21/exmr.safetensors',
+          download_url=f'https://huggingface.co/twehrbein/ExMR/resolve/{EXMR_REV}/exmr.safetensors',
           expected_sha256='8d3947310c30444ec59dae4662574d7a32bf83af30320eeac87146529ff2fda5'),
+    Model('exmr_config','ExMR configuration','exmr/config.json','https://huggingface.co/twehrbein/ExMR',minimum_bytes=180,
+          download_url=f'https://huggingface.co/twehrbein/ExMR/resolve/{EXMR_REV}/config.json',
+          expected_sha256='b29ad86d7916a7f54154c1a20fb07d3bc9d794da4d671c88ba0cf75a5cec8c43'),
     Model('exmr_sapiens','Body / Hand / Foot Keypoints / Sapiens2 1B','exmr/sapiens2_1b_pose.safetensors','https://huggingface.co/facebook/sapiens2-pose-1b',minimum_bytes=6079194752,
           download_url='https://huggingface.co/facebook/sapiens2-pose-1b/resolve/f5fed8b97b99698d5eea1d14ff0855d0b4c3f000/sapiens2_1b_pose.safetensors',
           expected_sha256='2dab7014a17e99e460c18817325a71dd7a81ce48d87027f01c2ee7d7b3af969f'),
@@ -98,6 +102,7 @@ MODELS_LIST.extend(Model(**entry) for entry in PHMR_ASSETS)
 BY_KEY = {model.key: model for model in MODELS_LIST}
 if len(BY_KEY)!=len(MODELS_LIST):raise ValueError('Duplicate model identifiers in the model registry.')
 MANUAL_INSTRUCTIONS = {
+    'exmr_config': 'Download config.json using the Supported file link below. It is the official ExMR checkpoint metadata, pinned to the same revision as exmr.safetensors. Return to the ExMR configuration row and click Import. Import the original JSON file without editing or renaming it. Auto Download can obtain this small public file directly.',
     'mano_right': '1. Open the Recommended download link below, or click Open Download Page. This opens the official download server for the exact archive. Sign in and accept the provider terms; register on the official MANO website if needed.\n2. Download mano_v1_2.zip. If browsing the MANO website instead, this is Models & Code > Models & Code.\n3. Extract the ZIP and open mano_v1_2/models.\n4. Return to Hand Model / MANO Right, click Import and select MANO_RIGHT.pkl. Keep this PKL file intact.\nHandFlow uses a right-hand canonical model for both hands, reflecting the left result back. The separate SMPL-H downloads cannot replace this hand model.',
     'smplx': '1. Open the SMPL-X download page below. Register or sign in and accept the provider terms.\n2. In the "SMPL-X Model" section, choose "Download SMPL-X v1.1 (NPZ+PKL, 830 MB)". Choose the standard v1.1 download listed above.\n3. Download models_smplx_v1_1.zip and extract the outer ZIP archive.\n4. Inside the extracted folder, open models, then smplx. Choose SMPLX_NEUTRAL.npz. Leave this NPZ file intact.\n5. Return to the Body Model / SMPL-X Neutral row and click Import. Select that single NPZ file; Missing changes to Ready after validation.',
 
@@ -127,7 +132,8 @@ for _key, _file in SAM_MANUAL_FILES.items():
         'The app does not need your account password or access token.')
 
 MANUAL_DETAILS = {
-    'exmr':dict(selection='twehrbein/ExMR > Files and versions > exmr.safetensors',location='exmr.safetensors',avoid='FootMR standalone weights, config.json, or repository ZIPs.'),
+    'exmr':dict(selection='twehrbein/ExMR > Files and versions > exmr.safetensors',location='exmr.safetensors',avoid='FootMR standalone weights, config.json (use the separate ExMR configuration row), or repository ZIPs.'),
+    'exmr_config':dict(selection='twehrbein/ExMR > Files and versions > config.json',location='config.json',avoid='Edited JSON, a different revision, an HTML page, or exmr.safetensors. Use the Supported file link for the matching revision.'),
     'exmr_sapiens':dict(selection='facebook/sapiens2-pose-1b > Files and versions > sapiens2_1b_pose.safetensors',location='sapiens2_1b_pose.safetensors',avoid='Sapiens v1, 0.3B models, segmentation, depth or normal checkpoints.'),
     'mano_right': dict(selection='Models & Code > Models & Code (mano_v1_2.zip)',location='mano_v1_2/models/MANO_RIGHT.pkl',avoid='SMPL+H archives, MANO_LEFT.pkl, or the outer ZIP file.'),
     'smplx': dict(selection='SMPL-X Model > Download SMPL-X v1.1 (NPZ+PKL, 830 MB)',
@@ -227,7 +233,7 @@ STAGE_REQUIREMENTS = {
     'flow_export': ('smplh',),
     'exmr_preprocess': ('exmr_sapiens',),
     'exmr_features': ('flow_sam','flow_sam_config','flow_mhr','hand_hamer','hand_mean','mano_right'),
-    'exmr': ('exmr','smplx'),
+    'exmr': ('exmr','exmr_config','smplx'),
     'mamma_assets': MAMMA_KEYS,
     **{stage:PHMR_KEYS for stage in ('prompthmr_assets','prompthmr_prepare','prompthmr_track','prompthmr_pose','prompthmr_world','prompthmr_publish')},
     'mamma_prepare': MAMMA_KEYS,

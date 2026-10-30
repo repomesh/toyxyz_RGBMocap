@@ -99,3 +99,7 @@ to fit; no option guarantees a particular duration on every PC. Historical
 include HTD, FootMR and HandFlow and are individual observations, not minimum
 specifications. See [validation](../VALIDATION.md) and
 [licenses](../../THIRD_PARTY_NOTICES.md).
+
+## Citation
+
+[GVHMR paper](https://arxiv.org/abs/2409.06662) · [Research citations and BibTeX](../CITATIONS.md#gvhmr)

@@ -88,11 +88,14 @@ class SamBodyFeatures:
     Args:
         checkpoint_dir: directory with model.ckpt, model_config.yaml and assets/mhr_model.pt of
             facebook/sam-3d-body-dinov3
+        fp16: run the backbone in float16 instead of the checkpoint's bfloat16 (SAM 3D Body's own
+            FP16_TYPE option). Faster only with FP16 accumulation
+            (torch.backends.cuda.matmul.allow_fp16_accumulation); tokens change at the 1e-3 level
     """
 
     TOKEN_DIM = 1024
 
-    def __init__(self, checkpoint_dir, batch_size=32, num_workers=8, device="cuda", low_memory=False):
+    def __init__(self, checkpoint_dir, fp16=False, batch_size=32, num_workers=8, device="cuda", low_memory=False):
         sam_3d_body, self._transforms, self._load_image, self._prepare_batch, self._to = (
             _import_sam_3d_body()
         )
@@ -107,6 +110,11 @@ class SamBodyFeatures:
                 mhr_path=str(checkpoint_dir / "assets" / "mhr_model.pt"),
             )
         assert model.cfg.MODEL.DECODER.DO_HAND_DETECT_TOKENS
+        if fp16:
+            for t in [*model.backbone.parameters(), *model.backbone.buffers()]:
+                if t.dtype == torch.bfloat16:
+                    t.data = t.data.half()
+            model.backbone_dtype = torch.float16
         self.model = model.eval().to(device)
         self.input_size = model_cfg.MODEL.IMAGE_SIZE
         self.batch_size, self.num_workers, self.device = batch_size, num_workers, device
@@ -158,6 +166,11 @@ class SamBodyFeatures:
                 tokens[i : i + bs] = self._tokens[:, 0].cpu()
                 i += bs
                 pbar.update(bs)
+        if not torch.isfinite(tokens).all():
+            raise RuntimeError(
+                "Non-finite SAM 3D Body features, probably a float16 overflow: disable FP16 "
+                "accumulation in run_video (exmr/pipeline.py) and please report this"
+            )
         return tokens
 
 

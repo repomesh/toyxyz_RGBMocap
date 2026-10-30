@@ -225,3 +225,7 @@ restricts use to non-commercial scientific research. RGB MoCap's MIT license
 does not relicense it, supporting checkpoints or registered body data. Restricted
 source is downloaded into the user's private runtime; weights/body models are not
 bundled. SAM2, Detectron2, ViTPose and other components retain their own terms.
+
+## Citation
+
+[PromptHMR paper](https://arxiv.org/abs/2504.06397) · [Research citations and BibTeX](../CITATIONS.md#prompthmr)

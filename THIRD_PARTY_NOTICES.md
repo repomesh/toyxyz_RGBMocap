@@ -51,7 +51,9 @@ Other runtime packages retain their included licenses. Supporting notices includ
 - GVHMR: copyright 2022–2023, 3D Vision Group, Zhejiang University.
   ExMR / FootMR: copyright 2025–2026, Leibniz University Hannover, with retained
   GVHMR notices. Follow the upstream publication/citation instructions, including
-  Wehrbein and Rosenhahn (FootMR, 3DV 2026).
+  Wehrbein and Rosenhahn (ExMR, arXiv:2610.26213; FootMR, 3DV 2026),
+  and the original GVHMR work. [Papers and BibTeX](docs/CITATIONS.md) cover
+  the five supported motion models and optional refinement models.
 - Kimodo MotionCorrection: copyright 2026, NVIDIA Corporation & Affiliates.
   Local changes add explicit contact targets, bounded solving and anatomical guards.
 - OSNet: Kaiyang Zhou; original MIT notices and model-zoo provenance are retained.

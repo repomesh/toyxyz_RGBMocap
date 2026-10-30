@@ -42,6 +42,21 @@ retain actual memory monitoring and deterministic producer cleanup.
 
 ## Models and model files
 
+ExMR's integrated v0.1.5 uses public `pipeline.hand_boxes`, `model_inputs` and
+`ExMR.from_pretrained` with direct model forward. Keep stage-scoped model reuse
+and the existing Low Memory/prefetch paths. Its upstream toe IK limits target
+displacement to 0.03 m per axis. RGB MoCap passes `normalize_world=False` through
+an explicit local option to preserve the existing world/camera frame. SimpleVO
+uses a documented frame-reader/count adapter over the canonical working video;
+do not switch it to JPEG pixels or extract duplicate frames just for camera
+enumeration. Keep the app's shared contact policy and manual timing precedence:
+upstream `foot_contacts` is not connected to correction. API/solver source hashes
+and provenance are part of stage receipts. Model Manager also downloads the
+official `models/exmr/config.json` (180 bytes) from the same pinned Hugging Face
+revision as the weights, with SHA-256 validation and a separate import row.
+It is checkpoint metadata, not app settings. Existing weight and runtime pins
+are unchanged. See [validation](VALIDATION.md#exmr-public-api-and-bounded-toe-ik-2026-10-31).
+
 | Model | Practical use | Hands / options |
 | --- | --- | --- |
 | ExMR | Default; generally fast, good quality in the project's subjective tests. SMPL-X. | Fingers included; static/moving camera and smoothing options. |

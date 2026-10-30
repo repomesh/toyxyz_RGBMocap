@@ -374,3 +374,7 @@ this installation's paths; copying that folder alone is not a supported setup
 method. For development environments and detailed checks, see
 [the agent installation/native-build runbook](MAMMA_AGENT_SETUP.md),
 [Build from source](BUILD.md) and [Validation](VALIDATION.md).
+
+## Citation
+
+[MAMMA paper](https://arxiv.org/abs/2506.13040) · [Research citations and BibTeX](CITATIONS.md#mamma)

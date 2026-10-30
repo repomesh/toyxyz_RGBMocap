@@ -188,6 +188,7 @@ for conditions, per-model results and output differences.
 
 - [User guide: installation, controls and settings](docs/USER_GUIDE.md)
 - [Model guides: files, defaults, options and limitations](docs/models/README.md)
+- [Research papers and citations](docs/CITATIONS.md)
 - [Recorded processing time, VRAM and RAM](docs/USER_GUIDE.md#recorded-processing-time-and-vram)
 - [Resource modes and measured optimizations](docs/PERFORMANCE.md)
 - [MAMMA: additional installation, model files and multi-video workflow](docs/MAMMA.md)
