@@ -118,7 +118,7 @@ upstream acknowledgements; see [third-party notices](../THIRD_PARTY_NOTICES.md).
 }
 ```
 
-ExMR's authors also request acknowledgement of FootMR and the original GVHMR
-work. Cite optional HTD-Refine and HandFlow when using those add-ons. The
+When using ExMR, also cite FootMR and the original GVHMR work.
+Cite optional HTD-Refine and HandFlow when using those add-ons. The
 application's use of Kimodo MotionCorrection does not imply use of the Kimodo
 text-to-motion generator.

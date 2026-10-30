@@ -124,8 +124,7 @@ for the measured scope and limitations.
 
 [ExMR paper](https://arxiv.org/abs/2610.26213) · [Research citations and BibTeX](../CITATIONS.md#exmr)
 
-Please also credit FootMR and the original GVHMR work, as requested by the
-ExMR authors.
+Please also credit FootMR and the original GVHMR work.
 
 ```bibtex
 @Article{wehrbein26exmr,

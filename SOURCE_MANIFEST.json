@@ -106,8 +106,8 @@
     },
     {
       "path": "docs/CITATIONS.md",
-      "bytes": 4748,
-      "sha256": "2ff56e6de80ae11315ac637a32c2bc5a1f04043665a1c6327a0b51ba58211d61"
+      "bytes": 4728,
+      "sha256": "ec3cc48f24a300793c76f15b43b3596452c8d155a8b0fbba6435e84bc40a6be0"
     },
     {
       "path": "docs/MAMMA.md",
@@ -156,8 +156,8 @@
     },
     {
       "path": "docs/models/EXMR.md",
-      "bytes": 8147,
-      "sha256": "0081e43c413bab87a09d1b8303bf0755076c04fffcc578cb215d64566e80d84a"
+      "bytes": 8113,
+      "sha256": "fd85fb1db9a879d43829c71445c98b9e715f14aa6aa4284f15577d2872b56baf"
     },
     {
       "path": "docs/models/FLOWHMR.md",
