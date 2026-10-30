@@ -9,7 +9,8 @@ motion quality. This is not a universal accuracy ranking.
 ## Prepare files
 
 Run the normal `install.cmd`, then select **FlowHMR > Model Manager**.
-Key assets are:
+FlowHMR does not require `Setup_MAMMA.cmd`, `Setup_PromptHMR.cmd` or their
+C++/CUDA native-build prerequisites. Key assets are:
 
 | Asset | Location under the app's `models/` folder |
 | --- | --- |
@@ -38,7 +39,8 @@ See [model preparation](../USER_GUIDE.md#prepare-models).
 | **Resource Mode** | Automatic | Use the fast GPU path when memory is sufficient; otherwise offload SAM/VGGT transformer blocks to CPU. Low Memory forces offloading. This can be slower and use more RAM; precision and motion frame count stay unchanged. |
 
 These options apply on **Reconstruct 3D**. Fast SAM is an extraction option,
-not MAMMA's SAM 2.1 mask stage or the standalone SAM 3.1 experiments.
+not MAMMA's SAM 2.1 masks, PromptHMR's SAM2 tiny tracker or the standalone
+SAM 3.1 experiments. Those checkpoints are not interchangeable.
 
 The two acceleration switches work independently and are saved with the project.
 They are used only while **Fast SAM** is on. They do not lower model precision,

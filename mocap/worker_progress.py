@@ -12,6 +12,11 @@ def emit(kind,**value):
 
 def main():
     stage=sys.argv[1] if len(sys.argv)>1 else ''
+    if stage in ('prompthmr_prepare','prompthmr_publish'):
+        from .compute_policy import configure_worker_cpu
+        configure_worker_cpu(stage)
+        from .prompthmr_pipeline import main as phmr_main
+        return phmr_main(sys.argv[1:])
     if stage in ('flow_batch','exmr_batch','gvhmr_batch'):
         from .batch_worker import main as batch_main
         from .progress_events import tqdm_events

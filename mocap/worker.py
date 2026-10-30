@@ -216,7 +216,7 @@ def main() -> int:
             from .flow_backend import run_stage
             run_stage(project,args.stage,args.result,emit,force=args.force)
             return 0
-        if require_supported_project(project).key=='mamma':
+        if require_supported_project(project).key in ('mamma','prompthmr'):
             if args.stage=='export':
                 from .export import export_project
                 output=export_project(project,args.result)
@@ -226,7 +226,7 @@ def main() -> int:
             elif args.stage in ('mesh','rig'):
                 from .export import export_project
                 output=export_project(project,args.result)
-            else:raise ValueError('Use the multi-view MAMMA pipeline for reconstruction; single-view stages cannot process this project.')
+            else:raise ValueError('Use this model\'s dedicated reconstruction pipeline; generic inference stages cannot process this project.')
             emit('complete',stage=args.stage,output=str(output),cached=False,elapsed=time.monotonic()-started)
             return 0
         if args.stage == 'rig':

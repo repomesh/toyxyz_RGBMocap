@@ -14,7 +14,7 @@ class MotionTool:
     def stages(self, refine=False, footmr=False, correction=False, handflow=False):
         if self.input_setup_only:
             return []
-        if self.key == 'mamma':return list(self.reconstruction)
+        if self.key in ('mamma','prompthmr'):return list(self.reconstruction)
         if self.key == 'flowhmr':
             return [*self.reconstruction, *(('correct',) if correction else ()), 'flow_export']
         return [*self.reconstruction, *(self.refinement if refine else ()), *(('footmr',) if footmr and self.key == 'gvhmr' else ()),
@@ -25,7 +25,8 @@ class MotionTool:
 MOTION_TOOLS = {"gvhmr": MotionTool("gvhmr", "GVHMR", ("track", "gvhmr"), ("pva", "refine")),
                 "flowhmr": MotionTool("flowhmr", "FlowHMR", ("track", "flow_camera", "flow_features", "flowhmr")),
                 "exmr": MotionTool("exmr", "ExMR", ("track", "exmr_preprocess", "exmr_features", "exmr")),
-                "mamma": MotionTool("mamma", "MAMMA", ("mamma_prepare","mamma_masks","mamma_landmarks","mamma_camera","mamma_fit","mamma_publish"))}
+                "mamma": MotionTool("mamma", "MAMMA", ("mamma_prepare","mamma_masks","mamma_landmarks","mamma_camera","mamma_fit","mamma_publish")),
+                "prompthmr": MotionTool("prompthmr", "PromptHMR", ("prompthmr_prepare","prompthmr_track","prompthmr_pose","prompthmr_world","prompthmr_publish"))}
 
 
 class UnsupportedMotionTool(ValueError):

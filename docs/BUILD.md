@@ -22,6 +22,11 @@ reviewed wheel stack without a system CUDA Toolkit. Optional MAMMA native builds
 require CUDA Toolkit 12.8 and the C++ tools described below. GPU compatibility
 still depends on the NVIDIA driver and installed wheels.
 
+Optional PromptHMR has a separate pinned Python 3.11 environment installed with
+`Setup_PromptHMR.cmd`. It also needs C++ tools and CUDA Toolkit 12.8 to build
+SAM2; MAMMA/SDF is not required. Read [its setup/developer notes](models/PROMPTHMR.md)
+before changing its lock, adapters, native modules or model paths.
+
 ## Environments
 
 Run `python tools/setup_dev.py --plan` to review groups. Then run the same command

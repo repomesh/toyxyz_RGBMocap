@@ -56,22 +56,21 @@ To update, close the app and run `update.cmd` from the same folder. See the
 [installation guide](docs/USER_GUIDE.md#install) for disk space, prerequisites
 and recovery.
 
-### Additional setup for MAMMA
+### Optional model runtimes
 
-For multi-view capture from synchronized camera videos, complete the base
-installation above, then install **Visual Studio 2022 C++ Build Tools** with the
-Windows SDK and **CUDA Toolkit 12.8**. Close the app and run:
+`install.cmd` prepares ExMR, FlowHMR and GVHMR. Install the following only if
+you use them, after the base installation:
 
-```cmd
-Setup_MAMMA.cmd
-```
+| Model | Separate setup command | Installation and usage |
+| --- | --- | --- |
+| MAMMA | `Setup_MAMMA.cmd` | [MAMMA guide](docs/MAMMA.md) |
+| PromptHMR | `Setup_PromptHMR.cmd` | [PromptHMR guide](docs/models/PROMPTHMR.md) |
 
-Review the upstream restricted-use terms before accepting the setup prompt.
-Reopen the app, select **MAMMA**, and use **Model Manager** to download or import
-its model files. MAMMA and locked-head SMPL-X assets require provider registration
-and manual download. See the [MAMMA installation and usage guide](docs/MAMMA.md)
-for prerequisites, exact files and storage requirements. This optional setup is
-not needed for ExMR, FlowHMR or GVHMR.
+Both require **Visual Studio 2022 C++ Build Tools**, the Windows SDK and
+**CUDA Toolkit 12.8** for local native builds. Close the app and review the
+provider terms before setup. Then reopen it and prepare the selected model's
+files in **Model Manager**. Neither optional runtime requires the other;
+`install.cmd` and `update.cmd` do not install them.
 
 ### Install with an AI agent
 
@@ -95,8 +94,18 @@ run Setup_MAMMA.cmd after the required license review, and verify the native CUD
 modules. Help me prepare its models without changing the other model runtimes.
 ```
 
-MAMMA's [agent setup guide](docs/MAMMA_AGENT_SETUP.md) includes build checks and
-recovery. Provider login and license acceptance remain your responsibility;
+For PromptHMR instead, add:
+
+```text
+Also enable PromptHMR. Follow docs/models/PROMPTHMR.md and docs/AGENT_GUIDE.md.
+Check the C++/CUDA tools, run Setup_PromptHMR.cmd after the required license
+review, verify its CUDA checks, and help prepare the exact Model Manager files.
+Keep other runtimes and existing projects unchanged.
+```
+
+MAMMA's [agent setup guide](docs/MAMMA_AGENT_SETUP.md) and the
+[PromptHMR guide](docs/models/PROMPTHMR.md) include build checks and recovery.
+Provider login and license acceptance remain your responsibility;
 do not put passwords or account tokens in the agent chat.
 
 ## Features
@@ -113,7 +122,8 @@ do not put passwords or account tokens in the agent chat.
 1. Select an AI model and prepare its files in **Model Manager**, then use
    **File > Open Video**. For MAMMA, select it before opening synchronized camera
    videos; thumbnails switch the preview and one timeline trim applies to all views.
-2. For a single-video model, optionally use **Find person** to select people.
+2. For ExMR, FlowHMR or GVHMR, optionally use **Find person** to select people.
+   PromptHMR tracks people together during reconstruction.
    MAMMA detects people during reconstruction; keep **VGGT (Automatic)** and
    enter an approximate **Reference Height (m)**, or import camera calibration.
    Click **Reconstruct 3D**.
@@ -128,23 +138,40 @@ do not put passwords or account tokens in the agent chat.
 | [FlowHMR](https://github.com/flowhmr/flowhmr) | SMPL-H | Included | [FlowHMR guide](docs/models/FLOWHMR.md) |
 | [GVHMR](https://github.com/zju3dv/GVHMR) | SMPL-X | Optional HandFlow add-on | [GVHMR guide](docs/models/GVHMR.md) |
 | [MAMMA](https://mamma.is.tue.mpg.de/) · multi-view motion capture | SMPL-X | Included | [MAMMA guide](docs/MAMMA.md) |
+| [PromptHMR](https://github.com/yufu-wang/PromptHMR) | SMPL-X | Not generated | [PromptHMR guide](docs/models/PROMPTHMR.md) |
 
 Requires 64-bit Windows, a compatible NVIDIA GPU/driver and OpenGL 4.3.
 Model files are acquired separately; some require registration and license acceptance.
 
-**Disk space:** allow about **45 GB (42 GiB)** for the app, runtimes,
-Blender and model files for the three single-video models, including their optional
-add-ons. The optional MAMMA runtime and model files are additional. Videos,
-projects, imported characters, exports, generated caches and retained download
-archives need additional space. See the [storage details](docs/USER_GUIDE.md#install).
+**Installed models and runtimes:** approximately **67.8 GB (63.1 GiB)** for all
+five models, including supported add-ons, Blender and FFmpeg. Measured without
+projects, caches or retained downloads; shared files are counted once.
+
+| Configuration | Runtime | Models | Total |
+| --- | ---: | ---: | ---: |
+| ExMR + FlowHMR + GVHMR and supported add-ons | 12.35 GiB | 28.89 GiB | 41.23 GiB |
+| MAMMA additional files | 6.11 GiB | 3.42 GiB | 9.54 GiB |
+| PromptHMR additional files | 6.22 GiB | 6.13 GiB | 12.34 GiB |
+| **All five** | **24.68 GiB** | **38.44 GiB** | **63.11 GiB** |
+
+**MAMMA and PromptHMR require separate runtime installation:** run
+`Setup_MAMMA.cmd` or `Setup_PromptHMR.cmd` after `install.cmd`, as described
+[above](#optional-model-runtimes). They are not installed by `install.cmd` or
+`update.cmd`; obtain weights separately in Model Manager.
+
+App source, C++/CUDA compiler tools, installation temporary files and saved work
+need additional space. These are measured sizes, not a setup free-space guarantee.
+See [storage and installation details](docs/USER_GUIDE.md#installed-size).
 
 [Cache and project cleanup: paths and deletion effects](docs/USER_GUIDE.md#storage-and-cleanup).
 
 ## Resources and speed
 
 Start with **Resource Mode > Automatic**. It uses the fast supported path when
-memory permits and falls back to Low Memory when needed. **Low Memory** trades
-loading/transfers for lower VRAM use; system RAM may increase.
+memory permits and falls back to a supported Low Memory path when needed.
+Memory-saving methods depend on the model; **Low Memory** can trade slower
+loading/transfers and more system RAM for lower VRAM use. See each model's guide
+for implemented options and limits.
 
 Short paired tests reduced peak allocated VRAM from **5.68 to 3.87 GiB** for ExMR
 and **6.10 to 2.77 GiB** for FlowHMR. Separate short-clip tests of connected
@@ -160,6 +187,7 @@ for conditions, per-model results and output differences.
 - [Recorded processing time, VRAM and RAM](docs/USER_GUIDE.md#recorded-processing-time-and-vram)
 - [Resource modes and measured optimizations](docs/PERFORMANCE.md)
 - [MAMMA: additional installation, model files and multi-video workflow](docs/MAMMA.md)
+- [PromptHMR: additional installation, model files and fixed-camera workflow](docs/models/PROMPTHMR.md)
 - [Development and builds](docs/BUILD.md)
 - [Agent operating and development guide](docs/AGENT_GUIDE.md)
 - [Source validation](docs/VALIDATION.md)

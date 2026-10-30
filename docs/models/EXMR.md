@@ -9,6 +9,8 @@ with good motion quality; results depend on the footage and settings.
 ## Prepare files
 
 Run the normal `install.cmd`; no separate ExMR setup command is needed.
+`Setup_MAMMA.cmd` and `Setup_PromptHMR.cmd` are optional for other workflows;
+ExMR does not require their native builds or system CUDA Toolkit.
 Select **ExMR > Model Manager** and prepare the listed files. Key assets are:
 
 | Asset | Location under the app's `models/` folder |
@@ -26,7 +28,8 @@ Registered SMPL-X/MANO and gated SAM 3D Body files may require manual download.
 The shared `flowhmr` and `handflow` folder names do not mean you must run those
 models or enable GVHMR's HandFlow add-on. ExMR uses these assets directly.
 MAMMA's locked-head SMPL-X bodies are different files and cannot replace ExMR's
-standard body. See [model download and reuse](../USER_GUIDE.md#prepare-models).
+standard body. PromptHMR can reuse the same standard SMPL-X Neutral file,
+while its runtime and other weights stay separate. See [model download and reuse](../USER_GUIDE.md#prepare-models).
 
 ## Controls
 

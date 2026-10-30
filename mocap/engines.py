@@ -34,7 +34,7 @@ def activate(name: str) -> Path:
 def link_models(root: Path) -> None:
     """Hard links keep upstream relative paths working without copying GB files."""
     for key,model in BY_KEY.items():
-        if key == 'person_reid':
+        if key == 'person_reid' or key.startswith('phmr_'):
             continue  # Discovery-only weights are never used by motion backends.
         source = model.path
         if not source.exists():

@@ -5,11 +5,11 @@ This guide is for agents helping users operate or modify RGB MoCap. It describes
 ## Start and update
 
 - Windows 64-bit, compatible NVIDIA GPU/driver and OpenGL 4.3 are required for the documented inference workflow. Other systems and GPUs were not comprehensively verified; see [validation](VALIDATION.md).
-- In a writable checkout, run `install.cmd` once. It sets up separate pinned profiles for all three single-video models and their supported add-ons, Blender 4.5, FFmpeg and the prebuilt native motion-correction module. It does not install only the selected model's runtime or obtain AI weights/body data. Downloading and disk space are required. Models are obtained separately; optional MAMMA uses Setup_MAMMA.cmd.
+- In a writable checkout, run `install.cmd` once. It sets up separate pinned profiles for ExMR, FlowHMR and GVHMR and their supported add-ons, Blender 4.5, FFmpeg and the prebuilt native motion-correction module. It does not install only the selected model's runtime or obtain AI weights/body data. Downloading and disk space are required. Models are obtained separately; optional MAMMA uses Setup_MAMMA.cmd and PromptHMR uses Setup_PromptHMR.cmd.
 - Run `RGBMoCap.cmd`. Keep its command window open; launch errors, processing messages and app Console output are also sent there, but long messages can be truncated and a saturated output queue can drop messages. Within the GUI, **Help > Check System** checks the system.
 - Close the app before `update.cmd`. The updater requires a clean tracked worktree and the `main` branch, uses `git pull --ff-only`, then verifies/repairs runtime configuration. It refuses tracked local edits. A plain `git pull` does not perform runtime repair; use `install.cmd` after dependency changes when needed. Do not discard local edits or force an update.
 - For setup failure, read the message, check connectivity and free space, then retry `install.cmd`. Preserve models, projects and `.setup` state. Do not repeatedly reinstall or redownload models without evidence.
-- Base installation currently estimates at least 32.4 GiB free before models; the three single-video models and add-ons were previously measured around 29 GiB of weights. Optional MAMMA adds a separate runtime and model files; see [its setup guide](MAMMA.md). Project data and download caches add space. Measurements are not guarantees. See [user guide](USER_GUIDE.md#install).
+- Base installation currently estimates at least 32.4 GiB free before models; ExMR/FlowHMR/GVHMR and add-ons were previously measured around 29 GiB of weights. Optional MAMMA and PromptHMR add separate runtimes and model files; see [MAMMA](MAMMA.md) and [PromptHMR](models/PROMPTHMR.md). All five model/runtime sets total about **63.11 GiB (67.8 GB)** excluding caches, projects, downloads and compiler tools, counting shared files once. See the [installed-size table](USER_GUIDE.md#installed-size); installed size and temporary setup headroom are different. Measurements are not guarantees.
 
 Multi-person reconstruction groups supported ExMR, FlowHMR and GVHMR phases
 into sequential, bounded worker requests. `mocap/queue_groups.py` builds the queue;
@@ -48,14 +48,79 @@ retain actual memory monitoring and deterministic producer cleanup.
 | FlowHMR | Slower; best overall quality in those tests, not a universal ranking. SMPL-H. | Fingers included; Fast SAM and camera/sampling choices. Moving camera needs VGGT-Omega. |
 | GVHMR | Lower overall quality in those tests but sometimes better for unusual poses such as backflips. SMPL-X. | Fingers via optional HandFlow. HTD refines body motion; FootMR refines ankles. Both are separate from contact correction. |
 | MAMMA | Optional multi-view SMPL-X capture from two or more synchronized fixed cameras, without a fixed camera-count maximum. Practical capacity depends on RAM/VRAM. Not part of the single-video quality ranking. | Fingers included; separate setup and locked-head body assets. VGGT or compatible manual calibration. |
+| PromptHMR | Optional one-video shared-scene SMPL-X capture. Useful to compare interacting people; fixed-camera Windows path, up to eight people. Placement can still be wrong. | No animated fingers. Setup_PromptHMR.cmd; People defaults to 2, Interaction Prompt on. |
 
-Start with the [model guide index](models/README.md), then [ExMR](models/EXMR.md), [FlowHMR](models/FLOWHMR.md), [GVHMR](models/GVHMR.md) or [MAMMA](MAMMA.md) for exact setup and controls. The [user guide](USER_GUIDE.md#recorded-processing-time-and-vram) includes observed timings, conditions and VRAM; these are historical measurements, not minimum specifications. FlowHMR has a 5,000-frame per-take limit and available memory may require less. MAMMA retains its 4–1,800-frame common trim and eight-person limits; there is no fixed camera-count maximum. Four-column thumbnails are a layout, not admission control. Do not change numerical precision, temporal context or model settings merely to improve a benchmark.
+Start with the [model guide index](models/README.md), then [ExMR](models/EXMR.md), [FlowHMR](models/FLOWHMR.md), [GVHMR](models/GVHMR.md), [MAMMA](MAMMA.md) or [PromptHMR](models/PROMPTHMR.md) for exact setup and controls. The [user guide](USER_GUIDE.md#recorded-processing-time-and-vram) includes observed timings, conditions and VRAM; these are historical measurements, not minimum specifications. FlowHMR has a 5,000-frame per-take limit and available memory may require less. MAMMA retains its 4–1,800-frame common trim and eight-person limits; there is no fixed camera-count maximum. Four-column thumbnails are a layout, not admission control. Do not change numerical precision, temporal context or model settings merely to improve a benchmark.
 
 Use **Model Manager** for the selected model and add-ons. Automatic download may fail, especially on Google Drive. Gated models require the user to register, accept upstream terms and obtain files; use **Manual Download...** and **Import...**. Do not handle provider passwords or redistribute licensed weights. Imports validate files; several model receipts tie validity to file size, timestamp and expected hash. If a copied file is not marked ready, import it again rather than assuming it is missing or editing receipts.
 
-Model files are in `<installation>/models/` by default. To reuse a legitimate installation, close both apps, copy the complete models folder and its receipt/license files beside `RGBMoCap.cmd`, and check readiness in Model Manager. Do not copy old `runtime*` folders. The optional SMPL Neutral body model is not required for the three primary workflows. Exact requirements are defined by `mocap/models.py` and the chosen stages, not by guessed filenames.
+### Installation routes
+
+| Command | Scope | Additional prerequisites |
+| --- | --- | --- |
+| `install.cmd` | Base GUI, ExMR/FlowHMR/GVHMR and supported add-ons, Blender, FFmpeg, native correction | See the base installation guide; no PromptHMR/MAMMA native build |
+| `Setup_MAMMA.cmd` | Optional independent MAMMA runtime | VS 2022 C++ tools/Windows SDK, CUDA Toolkit 12.8, provider license review |
+| `Setup_PromptHMR.cmd` | Optional independent PromptHMR runtime | Same build tools, separate provider license review; MAMMA/SDF not required |
+| `update.cmd` | Source update and base runtime verification | Close the app and preserve tracked edits; it does not install the optional runtimes |
+
+Optional Runtime Setup buttons display instructions/copy a command; they do not
+install inside the running app. After updates, rerun the relevant optional setup
+when requested by its dependency/runtime notice. Keep verified installed packages
+isolated even when Torch versions match. Models are obtained separately.
+
+Model files are in `<installation>/models/` by default. To reuse a legitimate installation, close both apps, copy the complete models folder and its receipt/license files beside `RGBMoCap.cmd`, and check readiness in Model Manager. Do not copy old `runtime*` folders. SMPL Neutral is required by PromptHMR, although it is not required for ExMR/FlowHMR/GVHMR. Standard SMPL-X Neutral is shared by ExMR/GVHMR/PromptHMR; MAMMA uses its separate locked-head bodies. Exact requirements are defined by `mocap/models.py` and the chosen stages, not by guessed filenames.
 
 ## Standard GUI workflow
+
+### PromptHMR setup and verification
+
+Follow [the detailed setup/workflow guide](models/PROMPTHMR.md). It is a
+separate pinned Python 3.11 runtime, not a MAMMA overlay or part of install.cmd.
+Setup_PromptHMR.cmd downloads restricted upstream source, builds SAM2 with
+Visual Studio 2022/CUDA Toolkit 12.8 and verifies actual CUDA operations. It
+reuses standard registered SMPL-X/SMPL bodies, not MAMMA's locked-head body.
+Only fixed-camera video is integrated. Find person is hidden; actors retain one
+shared inferred world. The adapter accepts 4–1,800 working frames at 30 fps and
+up to eight people. Both resource modes keep one-image batches and full temporal
+context; extra offloading is not implemented. Preserve actual memory monitoring.
+
+On the test PC its runtime used 6.32 GiB and specific weights/support data
+6.09 GiB, excluding shared bodies and compiler tools. Allow about 18 GiB free
+for setup before models/tools. The MAMMA and PromptHMR locks share 147 verified
+package download archives (about 3.39 GiB); this saves downloads, not installed
+runtime isolation.
+
+1. Verify base `install.cmd` completed, check the documented C++/CUDA tools and
+   free space, and close RGB MoCap. Do not install the optional runtime if the
+   user only needs ExMR, FlowHMR or GVHMR.
+2. Show the provider license requirement and follow the user's permitted-use
+   decision. Run `Setup_PromptHMR.cmd` from the app folder; never bypass its
+   license review or overwrite another profile's packages.
+3. Read `.setup/logs/prompthmr-*.log` if setup fails. Verification must exercise
+   SAM2 connected components, torchvision CUDA NMS and native attention; package
+   import or a successful cached inference alone does not validate a GPU build.
+4. Setup registers a successful environment through
+   `.setup/prompthmr-runtime.json`; `.setup/prompthmr-install-report.json` records
+   the initial installed size/checks. Never manually mark a failed environment
+   Ready. Setup retains a matching verified runtime or prepares a new generation
+   before activation. Preserve the previous runtime/models/projects on failure.
+5. Reopen the app, select PromptHMR and prepare all 14 scoped model/support/body
+   rows in Model Manager. Use the exact hashes; Google Drive can require manual
+   download/import. A Missing weight is not a reason to rebuild Python.
+6. Test a short fixed-camera video, with People = 2 and Interaction Prompt on
+   for two-person interaction. Confirm both people, shared-world playback and
+   original/corrected selection before export. No animated fingers are inferred.
+7. After a GPU architecture change or runtime dependency notice, rerun the same
+   setup and actual CUDA checks. Do not copy arbitrary native modules, edit
+   receipts or replace package versions to suppress an error.
+
+Native inference, published actors, corrections and exports have separate
+generations/receipts. Never load untrusted cached pickles or independently
+reposition actors. Only the flat hand-mean representation is converted for the
+shared SMPL-X evaluator; native joint positions are preserved. Optional contact
+correction is a subsequent intentional pose change. Preserve other runtimes.
+
+### MAMMA setup and verification
 
 MAMMA runs an optional complete multi-view pipeline using a separate pinned
 Python 3.11 Windows runtime installed with Setup_MAMMA.cmd. The current app
@@ -78,8 +143,10 @@ verification, registration and rollback, use the
 validate actual native CUDA operations. Do not overwrite a working runtime to
 test a new native module, or use cached inference as evidence of a new build.
 
+### Capture, correction and export
+
 1. Select an AI Motion Model and prepare its models, then **File > Open Video** and optionally trim the Video track. Select MAMMA before opening multiple videos. New work defaults to ExMR.
-2. For single-video models with multiple people, use **Find person** and check the desired rows; without it, automatic tracking selects one person and can switch identity on overlap. MAMMA instead detects and matches people during reconstruction; Find person is hidden and its People setting controls the count. A checked row controls visibility and single-video processing targets; the selected row controls the current timeline and contact edits.
+2. For ExMR, FlowHMR and GVHMR with multiple people, use **Find person** and check the desired rows; without it, automatic tracking selects one person and can switch identity on overlap. PromptHMR tracks people jointly during reconstruction; its People setting is a maximum count and Interaction Prompt is optional. MAMMA instead detects and matches people during reconstruction; Find person is hidden and its People setting controls the count. A checked row controls visibility and ExMR/FlowHMR/GVHMR processing targets; the selected row controls the current timeline and contact edits.
 3. Choose camera and processing settings, then **Reconstruct 3D**. Processing runs on a 30 fps working clip, without changing the original video. Progress and cancellation are in the app. **Prepare Preview** rebuilds previews from existing motion without rerunning inference.
 4. Review motion and contacts. **Enable Correction** selects corrected output; Foot defaults on and Hand off for new work. Flat Ground uses a common floor; Multi Level retains inferred contact heights and does not reconstruct terrain. Inspect automatic contacts; hand contacts represent support, not hanging/object tracking.
 5. Edit L/R foot and hand intervals on the timeline, then **Apply Correction**. Pending changes are not applied until then; stale corrected export is blocked. Applying also refreshes linked retargeted characters. Correction and preview do not require fresh AI inference.
@@ -107,7 +174,7 @@ in [validation](VALIDATION.md#contact-correction-v9-coherent-root-and-swing-tran
 
 ## Projects, state and protection
 
-- Default projects live under `<installation>/projects/`; **Save Project As** creates and switches to a copy at a user-selected location. Open the saved `project.json` using **File > Open Project**. A project contains model-specific `exmr`, `flowhmr`, `gvhmr` or `mamma` result folders; model switching loads existing results when available. MAMMA saves all input camera videos. People, takes, contact edits and imported characters are project data.
+- Default projects live under `<installation>/projects/`; **Save Project As** creates and switches to a copy at a user-selected location. Open the saved `project.json` using **File > Open Project**. A project contains model-specific `exmr`, `flowhmr`, `gvhmr`, `mamma` or `prompthmr` result folders; model switching loads existing results when available. MAMMA saves all input camera videos. People, takes, contact edits and imported characters are project data.
 - `models/`, `projects/`, `cache/`, `character_scenes/`, `runtime*/` and `.setup/` are local data, not source artifacts. User project folders can also be outside the checkout. Never assume `.gitignore` protects a path that was already tracked or will be force-added. Check `git status` and tracked files before committing; do not upload model weights, video, personal data, credentials, generated motion or caches. Explicitly approved README sample assets are exceptions.
 - Preserve source videos, registered weights and project data. Do not delete project subfolders, results or receipts to fix a problem: they can be referenced by saved metadata. Cache cleanup and setup-download cleanup are distinct from deleting saved work; see [storage and cleanup](USER_GUIDE.md#storage-and-cleanup). Obtain authorization for destructive cleanup.
 - `mocap/paths.py` defines `ROOT`, `RGB_MOCAP_DATA`, models and projects; normal portable startup sets its own data location. When diagnosing an actual run inspect the effective environment rather than assuming a path.
@@ -115,6 +182,13 @@ in [validation](VALIDATION.md#contact-correction-v9-coherent-root-and-swing-tran
 ## Resources and performance
 
 Use **Resource Mode > Automatic** by default. It keeps the fast path when the current GPU budget is sufficient and selects supported Low Memory paths per operation when needed. A supported fast operation that raises CUDA OOM is released and retried once in Low Memory. ExMR Low Memory uses CPU-first body/hand loading and converts Sapiens' existing FP16 layers before GPU transfer; ExMR body/hand batches stay 8. FlowHMR offloads SAM/VGGT blocks; MAMMA offloads VGGT camera blocks while retaining its pinned masks/landmark/fitting settings. GVHMR/add-ons retain adaptive image batches and full-context attention. The saved Automatic selection is not changed. Resource decisions and memory advice appear in the app Console and CMD. Model precision, frame count, resolution and iterations are not reduced. CPU loading/offloading can be slower and use more RAM; it is not a promise every clip will fit. Estimates select a path, never reject a job. The desktop still checks actual RAM and Windows allocation headroom every 0.5 seconds and stops workers when these become low. Preserve completed stages, genuine model limits and original motion. Do not rerun inference for operations that can use existing results.
+
+PromptHMR retains the same one-image batch/full temporal context in Automatic
+and Low Memory; extra block offloading is not implemented. Do not promise a
+mode-dependent VRAM saving or an unsupported offload retry for this path. Actual
+memory guards still apply. Its 422-frame/two-person run took 236.2 s, with peak
+allocated VRAM 4.61 GiB (7.83 GiB reserved) and worker working set 8.74 GiB; see
+[scope and stage times](models/PROMPTHMR.md#recorded-validation).
 
 GPU allocator limits share ComfyUI's external-use margin: 600 MiB on Windows, 700 MiB above 15 GiB GPU capacity (400 MiB on other systems). Subtract it from actual free VRAM without an additional percentage cap or fixed FlowHMR/ExMR 3/2 GiB reserve. This margin is separate from inference working space. Keep offloading in the app's validated `memory_mode.py` / `gpu_offload.py` adapters, without importing ComfyUI or changing model precision. Offload is inference-only, synchronous and unpinned; close hooks/models on success and failure. Actual RAM pressure remains a stop condition because offloading can increase host memory.
 
@@ -169,6 +243,7 @@ The app uses separate runtime profiles to maintain compatibility, with bounded b
 - GUI, people, controls and logging: `mocap/gui.py`, `workspace_ui.py`, `people_ui.py`, `character_ui.py`, `console_log.py`, `tooltips.py`.
 - Model selection and loading: `mocap/motion_tools.py`, `models.py`, `model_guide.py`; worker routing and runtimes: `worker.py`, `worker_progress.py`, `runtime_registry.py`, `compute_policy.py`.
 - MAMMA inputs/UI: `mocap/mamma_inputs.py`, `mamma_ui.py`; processing: `mamma_pipeline.py`, `mamma_camera.py`, `mamma_publish.py`, `mamma_body.py`; runtime/assets: `mamma_runtime.py`, `mamma_manager.py`, `mamma_models.py`, `installer/mamma-runtime-lock.json`, `tools/setup_mamma.py`. Follow [the native-build runbook](MAMMA_AGENT_SETUP.md) instead of guessing module build commands.
+- PromptHMR UI/pipeline: `mocap/prompthmr_ui.py`, `prompthmr_pipeline.py`, `prompthmr_publish.py`, `prompthmr_scene.py`; runtime/assets: `prompthmr_runtime.py`, `prompthmr_manager.py`, `prompthmr_models.py`, `prompthmr_worker_boot.py`, `installer/prompthmr-runtime-lock.json`, `installer/prompthmr_adapters.py`, `installer/verify_prompthmr.py`, `tools/setup_prompthmr.py`. Follow the separate setup/verification steps above.
 - Project storage: `project_storage.py`, `project_workspace.py`, `project_save.py`; contact correction: `correction.py`, `contact_trajectory.py`, `contact_pose_plan.py`, `contact_arm_plan.py`.
 - Source mesh / bone fit and preview: `source_animation.py`, `source_surface.py`, `surface_roll.py`, `preview_data.py`, `viewer.py`, `viewport.py`; source export: `fbx_export.py`, `fbx_writer.py`, `scene_export.py`.
 - Character pipeline: `mocap/retarget/` plus `character_data.py` and `character_ui.py`; Blender backend and model-specific constraints must be considered separately from source-person export.

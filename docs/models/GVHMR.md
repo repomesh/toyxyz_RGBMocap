@@ -12,6 +12,8 @@ that observation as a universal ranking.
 
 Run the normal `install.cmd`, then select **GVHMR > Model Manager**. Required
 rows depend on enabled add-ons; disabling an add-on skips its processing.
+GVHMR does not require `Setup_MAMMA.cmd`, `Setup_PromptHMR.cmd` or their
+C++/CUDA native-build prerequisites.
 
 | Stage | Key files under the app's `models/` folder |
 | --- | --- |
@@ -24,6 +26,8 @@ rows depend on enabled add-ons; disabling an add-on skips its processing.
 Model Manager lists the exact shared tracking and add-on requirements. Use the
 supported versions and import checks. Standard SMPL-X v1.1 and MANO may require
 provider registration; MAMMA's locked-head bodies cannot replace this body.
+PromptHMR reuses this standard SMPL-X Neutral file, while its runtime and
+other weights remain separate.
 Automatic downloads, particularly Google Drive files, can fail; use the row's
 **Manual Download...** and **Import...** actions. See [model preparation](../USER_GUIDE.md#prepare-models).
 

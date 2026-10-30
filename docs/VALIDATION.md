@@ -650,3 +650,33 @@ camera cache hit loads no VGGT model and Static Camera still skips VGGT with zer
 recorded GPU allocation. Five focused loader checks covered fast/Low Memory
 selection, unchanged generic depth routing, missing checkpoint rejection and
 unmaterialized-meta rejection. Test files, raw logs and assets stay outside the repo.
+
+
+## PromptHMR integration (2026-10-30)
+
+- The optional pinned Windows runtime was built and verified on the documented
+  RTX 5090 PC: SAM2 connected components, torchvision CUDA NMS and native SDPA
+  passed. Installed package hashes and a complete Pipeline import were checked.
+  Base installation verification retained all six existing profiles. No clean-PC
+  installation or other-GPU test was performed.
+- A fresh 422-frame, two-person fixed-camera video completed tracking, camera,
+  keypoint/image/video inference, native world post-optimization, app correction
+  and preview/bone preparation in 236.2 s. Peak worker working set was 8.74 GiB;
+  peak allocated/reserved CUDA memory was 4.61/7.83 GiB. See the
+  [PromptHMR guide](models/PROMPTHMR.md#recorded-validation) for timing scope.
+- Flat-hand-mean representation conversion matched native mesh/joint samples
+  exactly for both actors at three sampled frames. This is a coordinate/data
+  convention check, not ground-truth reconstruction accuracy.
+- Both actors' original and corrected FBXs imported into Blender with 52 bones,
+  Hips root, finite bone-only animation and distinct rest transforms. Save As,
+  reopening and full-clip Mixamo character retargeting/baking passed.
+- A short native OpenGL playback check recorded 31 ms median and 47 ms p95/max
+  frame-swap intervals, without a sampled video/timeline frame mismatch. Three
+  repeated project opens retained 784 handles and 51 threads, with about 534 MiB
+  working set. This is not universal FPS or proof of leak freedom.
+- Fresh 60-frame inference/export smoke tests passed for ExMR, FlowHMR and GVHMR.
+  Model switching and scoped Model Manager rows were checked for all five tools.
+  These checks do not cover every add-on, long sequence or difficult occlusion.
+- Test programs, source videos, model weights and outputs were kept outside the
+  public source file list. Restricted upstream PromptHMR source is downloaded
+  locally by setup, rather than bundled into the source distribution.

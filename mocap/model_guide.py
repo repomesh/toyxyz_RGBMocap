@@ -13,14 +13,17 @@ BENCHMARKS = {
     'flowhmr': ('7s<br>1 video', '2m 49s', '14.89', '22.19'),
     'exmr': ('7s<br>1 video', '1m 08s', '11.32', '19.31'),
     'mamma': ('13.8s<br>3 videos<br>2 people', '11m 52s', '6.47', '9.11'),
+    'prompthmr': ('14.1s<br>1 video<br>2 people', '3m 56s', '4.61', '8.74'),
 }
 PROJECT_URLS = {
+    'prompthmr': 'https://github.com/yufu-wang/PromptHMR',
     'mamma': 'https://mamma.is.tue.mpg.de/',
     'gvhmr': 'https://github.com/zju3dv/GVHMR',
     'flowhmr': 'https://github.com/flowhmr/flowhmr',
     'exmr': 'https://github.com/twehrbein/ExMR',
 }
 DESCRIPTIONS = {
+    'prompthmr': 'Single-video reconstruction of people together in one inferred scene. Relative placement during interactions was better in some of our two-person tests, but contacts, depth and intersections can still be wrong. Fixed cameras only in this Windows integration. People defaults to 2; 0 detects automatically, up to 8. Find person is not needed. Interaction Prompt defaults on; off follows the official default video path. Body motion uses SMPL-X; animated fingers are not generated. Supports the usual optional foot/hand contact correction, retargeting and FBX export. Requires Setup_PromptHMR.cmd and separate weights. Non-commercial scientific research license. See docs/models/PROMPTHMR.md.',
     'mamma': 'Multi-view reconstruction of one or several people from two or more synchronized fixed-camera videos of the same performance. No fixed camera-count maximum; practical capacity depends on available RAM and VRAM. Detects people automatically; Find person is not needed. Uses SAM 2.1 masks, FP32 landmarks and VGGT cameras, or your compatible camera calibration. Body and finger motion, original results and contact-corrected results are preserved. Best suited to views that complement each other; occlusion and bad masks can cause errors. Slower than single-video methods. Requires the separate Setup_MAMMA.cmd runtime and registered restricted-use models. See Model Manager > Runtime Setup and docs/MAMMA.md.',
     'gvhmr': 'Lowest overall motion quality in our tests, but sometimes better for unusual poses such as backflips. '
              'No native finger tracking. Optional HandFlow adds finger motion; FootMR refines ankles, and HTD refines body motion. These add processing time.',
@@ -55,10 +58,15 @@ tracking, app correction and preview/export.</p>
 <p>MAMMA used a different clip: three synchronized videos resized within 1920×1080,
 two people and 413 frames at 30 fps. Its time includes preparation, correction and preview;
 memory covers masks, landmarks, VGGT and 3D fitting. This is not a direct speed comparison.</p>
-<p>VRAM is peak PyTorch allocated memory, not total GPU usage. Single-video RAM is peak
-private memory; MAMMA RAM is peak worker working set. These historical measurements predate
-the latest Low Memory changes and are not minimum requirements. Results vary by input and PC.</p>
-<p>All four support Motion Correction for foot and hand contacts. Contact correction reduces sliding;
+<p>PromptHMR used 422 frames at 30 fps, one fixed-camera video and two people, with
+Interaction Prompt and app correction on. Time includes tracking, native inference,
+post-optimization, correction and preview/bone preparation; writing public FBX files is excluded.
+Its peak reserved CUDA memory was 7.83 GiB. It used a different clip from the older three-model test.</p>
+<p>VRAM is peak PyTorch allocated memory, not total GPU usage. ExMR/FlowHMR/GVHMR RAM is
+peak private memory; MAMMA/PromptHMR RAM is peak worker working set. The older four-model
+measurements predate the latest Low Memory changes. These are not minimum requirements.
+Results vary by input and PC.</p>
+<p>All supported models offer Motion Correction for foot and hand contacts. Contact correction reduces sliding;
 it is separate from tracking fingers or refining ankle angles.</p></body></html>"""
 
 

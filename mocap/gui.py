@@ -39,6 +39,7 @@ from .people_ui import PeopleWorkspace
 from .project_save_ui import ProjectSaving
 from .project_workspace_ui import ModelWorkspace
 STAGES.update(mamma_prepare='Prepare Multi-view Videos',mamma_masks='MAMMA Person Masks',mamma_landmarks='MAMMA Surface Landmarks',mamma_camera='MAMMA Cameras',mamma_fit='MAMMA 3D Fit',mamma_publish='MAMMA Motion Correction and Preview')
+STAGES.update(prompthmr_prepare='Prepare PromptHMR Video',prompthmr_track='PromptHMR People and Masks',prompthmr_pose='PromptHMR Camera, Keypoints and Motion',prompthmr_world='PromptHMR Shared World and Post-optimization',prompthmr_publish='PromptHMR Motion Correction and Preview')
 STAGES['save_project']='Save Project As'
 STAGES.update(people='Find People',person='Prepare Person Motion')
 STAGES.update(flow_camera='Estimate Scene Camera / VGGT-Omega', flow_features='Extract Body and Hand Features / SAM', flowhmr='Reconstruct Motion / FlowHMR', flow_export='Prepare FlowHMR Preview and FBX', import_model='Import Model')
@@ -126,7 +127,7 @@ class ModelsDialog(QDialog):
         self.window = window
         self.tool = MOTION_TOOLS[tool_key or window.model_choice.currentData()]
         from .models import STAGE_REQUIREMENTS
-        keys = ({key for key in STAGE_REQUIREMENTS['mamma_assets']} if self.tool.key=='mamma' else
+        keys = ({key for key in STAGE_REQUIREMENTS[self.tool.key+'_assets']} if self.tool.key in ('mamma','prompthmr') else
                 {key for stage in (*self.tool.stages(refine=True, footmr=True, handflow=True),'people') for key in STAGE_REQUIREMENTS.get(stage, ())})
         # Keep public automatic downloads together, followed by manual-only files.
         # Stable sorting preserves the existing component order within each group.
@@ -140,6 +141,9 @@ class ModelsDialog(QDialog):
         layout.addWidget(description)
         if self.tool.key=='mamma':
             from .mamma_manager import runtime_panel
+            layout.addWidget(runtime_panel(self))
+        elif self.tool.key=='prompthmr':
+            from .prompthmr_manager import runtime_panel
             layout.addWidget(runtime_panel(self))
         self.table = QTableWidget(len(self.models), 3)
         self.table.setHorizontalHeaderLabels(["Model", "Status", "Action"])
@@ -330,8 +334,9 @@ class ModelsDialog(QDialog):
 
 from .character_ui import CharacterWorkspace
 from .mamma_ui import MammaWorkspace
+from .prompthmr_ui import PromptHMRWorkspace
 
-class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,PeopleWorkspace,QMainWindow):
+class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,PeopleWorkspace,QMainWindow):
     def __init__(self, video: Path | None = None):
         super().__init__()
         self.setWindowTitle("RGB MoCap | Motion Workspace")
@@ -476,6 +481,7 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
         self.analyze_button.setVisible(tool.key=='gvhmr')
         self.sync_correction_floor_preview()
         self.sync_mamma_controls()
+        self.sync_prompthmr_controls()
 
     def sync_correction_floor_preview(self):
         self.motion_view.correction_floor_applicable=self.correction_mode.currentData()=='flat'
@@ -718,6 +724,11 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
             self.status.setText(str(error))
             return False
         manifest = json.loads((project / "project.json").read_text(encoding="utf-8"))
+        if manifest.get('pipeline',{}).get('model')=='prompthmr':
+            group=(project/manifest.get('people_root','.')).resolve()
+            if (group/'prompthmr_pending.json').exists():
+                self.status.setText('PromptHMR publication is incomplete. Reconstruct again; previous projects were preserved.');return False
+            self.restore_prompthmr_options(manifest.get('prompthmr_options',{}))
         if manifest.get('pipeline',{}).get('model')=='mamma':
             group=(project/manifest.get('people_root','.')).resolve()
             if (group/'mamma_pending.json').exists():
@@ -969,6 +980,7 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
     def run_full(self):
         tool = MOTION_TOOLS[self.model_choice.currentData()]
         if tool.key=='mamma':return self.run_mamma()
+        if tool.key=='prompthmr':return self.run_prompthmr()
         if tool.key=='exmr' and self.people_root is not None:
             from .storage import atomic_json
             path=self.people_root/'project.json';state=json.loads(path.read_text(encoding='utf-8'))
@@ -1256,7 +1268,7 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
                      'flow_camera', 'flow_features', 'flowhmr',
                      'exmr_preprocess', 'exmr_features', 'exmr'}:
             self._batch_has_motion = True
-        if stage.startswith('mamma_') or stage in ('flow_batch','exmr_batch','gvhmr_batch'):self._batch_has_motion=True
+        if stage.startswith(('mamma_','prompthmr_')) or stage in ('flow_batch','exmr_batch','gvhmr_batch'):self._batch_has_motion=True
         self.current_stage = stage
         self._batch_inner_stage=stage
         if arguments is None:
@@ -1364,7 +1376,7 @@ class MainWindow(MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,
             self.task_state.update(dict(current=0,total=0,phase=f"batch:{event['phase']}:{event['index']}",message='Loading actor data'),time.monotonic())
             self.status.setText(self._task_actor+' · '+STAGES.get(event['stage'],event['stage']))
             self.update_task_progress()
-        elif kind=='mamma_ready':
+        elif kind in ('mamma_ready','prompthmr_ready'):
             self.workspace_root=Path(event['root'])
             self.load_project(Path(event['project']))
             self.set_active_result(event['result'])

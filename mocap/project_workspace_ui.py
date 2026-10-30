@@ -16,6 +16,7 @@ class ModelWorkspace:
     def workspace_settings(self):
         return dict(result=self.active_result,correction=self.selected_correction_options(),
             mamma_options=self.mamma_options(),
+            prompthmr_options=self.prompthmr_options(),
             flow_options=self.selected_flow_options(),
             exmr_options={'static_camera':self.exmr_camera.currentData(),'smoothing':'global' if self.exmr_smoothing.isChecked() else 'none'})
 
@@ -37,6 +38,7 @@ class ModelWorkspace:
         self.exmr_smoothing.setChecked(exmr.get('smoothing','global')=='global')
         self.active_result=self.selected_result()
         self.restore_mamma_options(settings.get('mamma_options',{}))
+        self.restore_prompthmr_options(settings.get('prompthmr_options',{}))
 
     def workspace_view(self):
         fps=self.info['fps'] if self.info else 30.
@@ -52,7 +54,7 @@ class ModelWorkspace:
             state=manifest(self.project)
             state.setdefault('pipeline',{})['result']=self.active_result
             settings=self.workspace_settings()
-            for key in ('correction','flow_options','exmr_options'):state[key]=settings[key]
+            for key in ('correction','flow_options','exmr_options','prompthmr_options'):state[key]=settings[key]
             atomic_json(self.project/'project.json',state)
             saved=workspace.set_active(root,state['pipeline']['model'],self.project,self.workspace_view())
             model=state['pipeline']['model']

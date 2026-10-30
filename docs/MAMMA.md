@@ -20,7 +20,10 @@ evidence that every such workload fits this adapter or a particular GPU.
 See [all model guides](models/README.md) for the other capture workflows.
 
 It has a separate optional runtime; ExMR, FlowHMR and GVHMR keep their existing
-environments. Run the normal `install.cmd` first.
+environments. Run the normal `install.cmd` first. PromptHMR is another independent
+optional workflow: neither model requires the other's setup. The same C++/CUDA
+build tools can be used, but their installed Python packages and body-model
+requirements remain separate. See [PromptHMR](models/PROMPTHMR.md).
 
 ## Before installing
 
@@ -46,7 +49,7 @@ and other GPUs have not been verified.
 
 | Item | Storage |
 | --- | ---: |
-| Installed MAMMA runtime on the test PC | 6.19 GiB |
+| Active runtime excluding caches / earlier setup-report size | 6.11 GiB / 6.19 GiB |
 | Model files, when the shared VGGT-Omega model is already installed | 3.42 GiB additional |
 | Model files including VGGT-Omega | 7.69 GiB |
 | Free space needed during runtime setup, before models and compiler tools | About 18 GiB |
@@ -54,6 +57,9 @@ and other GPUs have not been verified.
 The setup downloads approximately 3.57 GiB of package/source archives, excluding
 Python and models. Retained downloads, videos and generated projects use extra
 space. These figures are separate from the base installation's storage estimate.
+The latest cache-free additional runtime/model total is about **9.54 GiB** when
+VGGT is already installed. See the [all-model inventory](USER_GUIDE.md#installed-size)
+for shared-file accounting and setup versus installed-space differences.
 
 ## Install the runtime
 
