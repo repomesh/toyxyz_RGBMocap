@@ -98,6 +98,8 @@ MODELS_LIST.extend([
 from .mamma_models import ASSETS as MAMMA_ASSETS, KEYS as MAMMA_KEYS, INSTRUCTIONS as MAMMA_INSTRUCTIONS
 MODELS_LIST.extend(Model(**entry) for entry in MAMMA_ASSETS)
 from .prompthmr_models import ASSETS as PHMR_ASSETS,KEYS as PHMR_KEYS,INSTRUCTIONS as PHMR_INSTRUCTIONS
+from .pear_models import ASSETS as PEAR_ASSETS,KEYS as PEAR_KEYS,INSTRUCTIONS as PEAR_INSTRUCTIONS
+MODELS_LIST.extend(Model(**entry) for entry in PEAR_ASSETS)
 MODELS_LIST.extend(Model(**entry) for entry in PHMR_ASSETS)
 BY_KEY = {model.key: model for model in MODELS_LIST}
 if len(BY_KEY)!=len(MODELS_LIST):raise ValueError('Duplicate model identifiers in the model registry.')
@@ -116,6 +118,7 @@ MANUAL_INSTRUCTIONS = {
 
 MANUAL_INSTRUCTIONS.update(MAMMA_INSTRUCTIONS)
 MANUAL_INSTRUCTIONS.update(PHMR_INSTRUCTIONS)
+MANUAL_INSTRUCTIONS.update(PEAR_INSTRUCTIONS)
 
 for _key in ('mano_right','smplh'):
     MANUAL_INSTRUCTIONS[_key] += ('\nIf the MANO website shows 502 Bad Gateway, use the Recommended download link below '
@@ -220,6 +223,7 @@ def manual_instructions_html(key: str) -> str:
 
 
 STAGE_REQUIREMENTS = {
+    'pear_assets': PEAR_KEYS,
     "people": ("yolo", "person_reid"),
     "track": ("yolo",), "pva": ("pva",),
     "features": ("hmr2", "vitpose"),
@@ -246,8 +250,11 @@ STAGE_REQUIREMENTS = {
 
 
 def ready(model: Model) -> bool:
+    if model.key=='pear_geometry':
+        from .pear_models import geometry_ready
+        return geometry_ready()
     valid=model.path.is_file() and model.path.stat().st_size >= model.minimum_bytes
-    if valid and (model.key.startswith(('flow','hand','exmr','mamma','phmr')) or model.key in ('smplh','mano_right')):
+    if valid and (model.key.startswith(('flow','hand','exmr','mamma','phmr','pear')) or model.key in ('smplh','mano_right')):
         import json
         try:
             receipt=json.loads(model.path.with_suffix(model.path.suffix+'.receipt.json').read_text(encoding='utf-8'))
@@ -333,6 +340,9 @@ def download(key: str, progress=None) -> Path:
 def import_model_file(key: str, source: Path) -> Path:
     """Worker-only validated, atomic registration; never unpickles imports."""
     import os, uuid
+    if key=='pear_geometry':
+        from .pear_models import import_bundle
+        return import_bundle(source)
     model=BY_KEY[key]; source=Path(source).resolve()
     if source.stat().st_size < model.minimum_bytes:
         raise ValueError('The file is too small for '+model.name)

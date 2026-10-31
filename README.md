@@ -36,6 +36,7 @@ https://github.com/user-attachments/assets/4c0b290b-4a65-4287-8d22-c63c96b3d080
    ```
 
 2. Prepare the runtimes for ExMR, FlowHMR and GVHMR with their supported add-ons,
+   plus PEAR live-preview support,
    Blender, FFmpeg and native motion correction. AI weights and registered body
    files are downloaded separately in Model Manager:
 
@@ -58,7 +59,8 @@ and recovery.
 
 ### Optional model runtimes
 
-`install.cmd` prepares ExMR, FlowHMR and GVHMR. Install the following only if
+`install.cmd` prepares ExMR, FlowHMR, GVHMR and the small shared-runtime support
+for [PEAR live preview](docs/models/PEAR.md). Install the following only if
 you use them, after the base installation:
 
 | Model | Separate setup command | Installation and usage |
@@ -66,11 +68,15 @@ you use them, after the base installation:
 | MAMMA | `Setup_MAMMA.cmd` | [MAMMA guide](docs/MAMMA.md) |
 | PromptHMR | `Setup_PromptHMR.cmd` | [PromptHMR guide](docs/models/PROMPTHMR.md) |
 
-Both require **Visual Studio 2022 C++ Build Tools**, the Windows SDK and
+MAMMA and PromptHMR require **Visual Studio 2022 C++ Build Tools**, the Windows SDK and
 **CUDA Toolkit 12.8** for local native builds. Close the app and review the
 provider terms before setup. Then reopen it and prepare the selected model's
-files in **Model Manager**. Neither optional runtime requires the other;
+files in **Model Manager**. Their optional runtimes do not require each other;
 `install.cmd` and `update.cmd` do not install them.
+
+PEAR reuses the base shared runtime with a small support overlay prepared by
+`install.cmd` and `update.cmd`. No separate setup or compiler is required.
+Model files are prepared separately.
 
 ### Install with an AI agent
 
@@ -116,6 +122,7 @@ do not put passwords or account tokens in the agent chat.
 - Export source animation as FBX; export characters as FBX with or without meshes,
   or PMX character motion as VMD for MMD.
 - Save projects with separate results for each AI model.
+- Preview one person's live body/finger bones from a webcam or video with PEAR.
 
 ## How it works
 
@@ -130,6 +137,10 @@ do not put passwords or account tokens in the agent chat.
 3. Review the motion, edit contacts if needed and **Apply Correction**.
 4. Export FBX, or import a character, retarget the motion and export it.
 
+For **PEAR · Live**, choose a webcam or open a video, then click **Start Live
+Tracking**. It provides a bone preview without recording, correction or export.
+See the [PEAR guide](docs/models/PEAR.md) for its controls.
+
 ## Supported AI models
 
 In our subjective tests, **PromptHMR** could improve relative placement and
@@ -138,6 +149,7 @@ motion quality was lower than **ExMR**. It does not support finger tracking.
 
 | Model / original project | Body representation | Fingers | Setup and use |
 | --- | --- | --- | --- |
+| [PEAR](https://github.com/Pixel-Talk/PEAR) · live preview | SMPL-X / FLAME | Included | [PEAR guide](docs/models/PEAR.md) |
 | [ExMR](https://github.com/twehrbein/ExMR) | SMPL-X | Included | [ExMR guide](docs/models/EXMR.md) |
 | [FlowHMR](https://github.com/flowhmr/flowhmr) | SMPL-H | Included | [FlowHMR guide](docs/models/FLOWHMR.md) |
 | [GVHMR](https://github.com/zju3dv/GVHMR) | SMPL-X | Optional HandFlow add-on | [GVHMR guide](docs/models/GVHMR.md) |
@@ -147,8 +159,8 @@ motion quality was lower than **ExMR**. It does not support finger tracking.
 Requires 64-bit Windows, a compatible NVIDIA GPU/driver and OpenGL 4.3.
 Model files are acquired separately; some require registration and license acceptance.
 
-**Installed models and runtimes:** approximately **67.8 GB (63.1 GiB)** for all
-five models, including supported add-ons, Blender and FFmpeg. Measured without
+**Installed models and runtimes:** approximately **67.8 GB (63.1 GiB)** for the
+five offline models, including supported add-ons, Blender and FFmpeg. Measured without
 projects, caches or retained downloads; shared files are counted once.
 
 | Configuration | Runtime | Models | Total |
@@ -156,7 +168,11 @@ projects, caches or retained downloads; shared files are counted once.
 | ExMR + FlowHMR + GVHMR and supported add-ons | 12.35 GiB | 28.89 GiB | 41.23 GiB |
 | MAMMA additional files | 6.11 GiB | 3.42 GiB | 9.54 GiB |
 | PromptHMR additional files | 6.22 GiB | 6.13 GiB | 12.34 GiB |
-| **All five** | **24.68 GiB** | **38.44 GiB** | **63.11 GiB** |
+| **Five offline models** | **24.68 GiB** | **38.44 GiB** | **63.11 GiB** |
+| PEAR live preview, additional | Small support overlay; shared runtime reused | ~2.84 GiB | ~2.84 GiB |
+
+Including PEAR, the estimated combined model/runtime total is about
+**65.95 GiB (70.8 GB)**, before the additional space listed below.
 
 **MAMMA and PromptHMR require separate runtime installation:** run
 `Setup_MAMMA.cmd` or `Setup_PromptHMR.cmd` after `install.cmd`, as described

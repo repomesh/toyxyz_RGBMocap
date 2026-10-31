@@ -31,6 +31,13 @@ the app Console and CMD window.
 | FlowHMR | Offload SAM/VGGT transformer blocks to CPU and transfer them for inference. SAM uses one frame per batch; the saved GPU Hand Crops selection is retained. |
 | GVHMR and add-ons | Use existing adaptive image batches and bounded processing. Preserve full-context FP32 attention; use the validated query split only when dense attention does not fit or after its supported OOM recovery. |
 | MAMMA | Offload the VGGT camera transformer blocks. Masks, FP32 landmarks and 3D fitting keep their current settings; this is not full-MAMMA model offloading. |
+| PromptHMR | Retains one-image batches and full temporal context; additional block offloading is not implemented. |
+
+PEAR is a separate live tool: the offline Resource Mode control is hidden. Its
+fixed-length bone path uses FP16 encoding/FP32 decoding, one requested frame per
+prediction and bounded latest-frame presentation. It retains RAM monitoring and
+a CUDA allocation budget but has no automatic offload/retry path. See the
+[PEAR timings and limitations](models/PEAR.md#placement-and-performance).
 
 ## Measured memory savings
 

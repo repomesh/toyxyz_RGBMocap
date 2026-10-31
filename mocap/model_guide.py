@@ -9,6 +9,7 @@ from .motion_tools import MOTION_TOOLS
 # MAMMA: separate 413-frame/three-view manual run (SAM 2.1, VGGT, two people).
 # Time includes correction/preview; memory is measured across four inference workers.
 BENCHMARKS = {
+    'pear': ('5s live video<br>1 person','21.43 ms/frame median<br>23.80 ms p95','1.50','—'),
     'gvhmr': ('7s<br>1 video', '2m 01s', '5.08', '12.47'),
     'flowhmr': ('7s<br>1 video', '2m 49s', '14.89', '22.19'),
     'exmr': ('7s<br>1 video', '1m 08s', '11.32', '19.31'),
@@ -16,6 +17,7 @@ BENCHMARKS = {
     'prompthmr': ('14.1s<br>1 video<br>2 people', '3m 56s', '4.61', '8.74'),
 }
 PROJECT_URLS = {
+    'pear':'https://github.com/Pixel-Talk/PEAR',
     'prompthmr': 'https://github.com/yufu-wang/PromptHMR',
     'mamma': 'https://mamma.is.tue.mpg.de/',
     'gvhmr': 'https://github.com/zju3dv/GVHMR',
@@ -23,6 +25,7 @@ PROJECT_URLS = {
     'exmr': 'https://github.com/twehrbein/ExMR',
 }
 DESCRIPTIONS = {
+    'pear':'Live single-person body and finger bone preview from a webcam or the current video frame. Fixed bone lengths are calibrated once; Reset Bones recalibrates from the displayed pose without reloading models. World Position is on by default; off fixes pelvis translation while preserving rotation. Body mesh is not computed per live frame. Select a webcam above the video, or choose None for video, then click Start Live Tracking. Stop releases models and the webcam. Uses YOLOv8s person detection; detector boxes can affect the resulting pose. Rotation and One Euro Filter apply to both sources. Adjustable One Euro smoothing reduces tremors with some motion-dependent lag and no extra inference. Seeks start from the selected frame; filtering continues during playback. No Find person, recording, Motion Correction, retargeting or motion export in this live mode. Pelvis placement assumes a fixed camera, not a calibrated world. Support files are included in install.cmd and update.cmd, reusing the shared runtime without upgrading its packages or requiring a CUDA compiler. Prepare the checkpoint and registered SMPL-X 2020/FLAME geometry bundle in Model Manager. See docs/models/PEAR.md.',
     'prompthmr': 'Reconstructs multiple people together from one video. In our subjective tests, it could give more accurate relative placement and interactions, but overall motion quality was lower than ExMR. Contacts, depth and intersections can still be wrong. Fixed cameras only in this Windows integration. People defaults to 2; 0 detects automatically, up to 8. Find person is not needed. Interaction Prompt defaults on; off follows the official default video path. Body motion uses SMPL-X. No finger tracking; untracked fingers use a fixed neutral pose. Supports the usual optional foot/hand contact correction, retargeting and FBX export. Requires Setup_PromptHMR.cmd and separate weights. Non-commercial scientific research license. See docs/models/PROMPTHMR.md.',
     'mamma': 'Multi-view reconstruction of one or several people from two or more synchronized fixed-camera videos of the same performance. No fixed camera-count maximum; practical capacity depends on available RAM and VRAM. Detects people automatically; Find person is not needed. Uses SAM 2.1 masks, FP32 landmarks and VGGT cameras, or your compatible camera calibration. Body and finger motion, original results and contact-corrected results are preserved. Best suited to views that complement each other; occlusion and bad masks can cause errors. Slower than single-video methods. Requires the separate Setup_MAMMA.cmd runtime and registered restricted-use models. See Model Manager > Runtime Setup and docs/MAMMA.md.',
     'gvhmr': 'Lowest overall motion quality in our tests, but sometimes better for unusual poses such as backflips. '
@@ -62,11 +65,12 @@ memory covers masks, landmarks, VGGT and 3D fitting. This is not a direct speed 
 Interaction Prompt and app correction on. Time includes tracking, native inference,
 post-optimization, correction and preview/bone preparation; writing public FBX files is excluded.
 Its peak reserved CUDA memory was 7.83 GiB. It used a different clip from the older three-model test.</p>
+<p>PEAR is a live preview, not a full-clip reconstruction. Its row measures the fixed-length bone worker after warmup, excluding model startup, GUI and camera capture. Maximum processing time was 160.31 ms; the visible app presented 150 paired frames in five seconds. Startup took about 34 seconds. Peak RAM was not separately recorded for this row. See docs/models/PEAR.md for scope and limits. This is not directly comparable with offline processing times.</p>
 <p>VRAM is peak PyTorch allocated memory, not total GPU usage. ExMR/FlowHMR/GVHMR RAM is
 peak private memory; MAMMA/PromptHMR RAM is peak worker working set. The older four-model
 measurements predate the latest Low Memory changes. These are not minimum requirements.
 Results vary by input and PC.</p>
-<p>All supported models offer Motion Correction for foot and hand contacts. Contact correction reduces sliding;
+<p>Offline reconstruction models offer Motion Correction for foot and hand contacts. Contact correction reduces sliding;
 it is separate from tracking fingers or refining ankle angles.</p></body></html>"""
 
 

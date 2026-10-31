@@ -107,8 +107,9 @@ have not yet been verified; compatibility reports are welcome.
 2. Run `install.cmd` with an internet connection. It downloads and verifies
    pinned Python environments, Blender 4.5.0, FFmpeg 7.1.1 and small upstream
    support files, and installs the included prebuilt motion-correction module.
-   It prepares ExMR, FlowHMR and GVHMR runtimes and their supported add-ons
-   together, not only the currently selected model. The AI runtimes remain
+   It prepares ExMR, FlowHMR and GVHMR runtimes, their supported add-ons, and
+   PEAR's small shared-runtime support together, not only the selected model.
+   The AI runtimes remain
    separate; model weights/body data are not included. Downloads and free disk
    space are needed, and the install can take time.
 3. Run `RGBMoCap.cmd`. Keep its console open while the GUI runs; launch errors
@@ -170,7 +171,7 @@ other PCs; connection speed and storage performance affect the time.
 ### Installed size
 
 The current registered model files and active runtimes measured approximately
-**67.8 GB (63.1 GiB)** with all five models and supported add-ons installed.
+**67.8 GB (63.1 GiB)** with the five offline models and supported add-ons installed.
 Blender and FFmpeg are included. The inventory excludes projects, imported
 characters, exports, caches (including Python bytecode), retained download
 archives, obsolete runtime generations and separately installed compiler tools.
@@ -181,7 +182,11 @@ Shared model files and hardlinks are counted once.
 | ExMR + FlowHMR + GVHMR, including supported add-ons | 12.35 GiB | 28.89 GiB | 41.23 GiB |
 | MAMMA additional files | 6.11 GiB | 3.42 GiB | 9.54 GiB |
 | PromptHMR additional files | 6.22 GiB | 6.13 GiB | 12.34 GiB |
-| **All five** | **24.68 GiB** | **38.44 GiB** | **63.11 GiB** |
+| **Five offline models** | **24.68 GiB** | **38.44 GiB** | **63.11 GiB** |
+| PEAR live preview, additional | Small support overlay; shared runtime reused | ~2.84 GiB | ~2.84 GiB |
+
+Adding PEAR to all five offline sets gives an estimated combined total of about
+**65.95 GiB (70.8 GB)**. Its original geometry ZIP needs additional download space.
 
 Totals use unrounded bytes; rounded cells may not sum exactly. These are local
 observations, not universal requirements. App source files add space beyond this
@@ -222,6 +227,8 @@ may be outside the installation folder.
 | `<install folder>\.setup\downloads\`, `.setup\uv-cache\` and `.setup\tmp\` | Downloaded wheels and temporary cache can be removed only after installation or update completes. They are reused for repair and updates; deleting them may require downloading files again. Keep the rest of `.setup`, including the private Python and installation state. |
 | `<install folder>\.setup\mamma-downloads\` | Optional MAMMA package/source download cache. Its contents can be removed after MAMMA setup finishes; repair may need to download them again. Keep `runtime_mamma` and `.setup/mamma-runtime.json`. |
 | `<install folder>\.setup\prompthmr-downloads\` | Optional PromptHMR package/source download cache. Remove contents only after setup finishes; repair may need to download them again. Keep `runtime_prompthmr` and `.setup/prompthmr-runtime.json`. |
+| `<install folder>\.setup\pear-downloads\` | PEAR source/support archives. Contents can be removed after installation/update finishes; repair may download them again. Keep `runtime_pear` and `.setup/pear-runtime.json`. |
+| `<install folder>\temp\` | Local PEAR Torch/kernel temporary cache. Contents can be removed after closing the app and its workers; the next run can recreate them. |
 
 Repeated work mainly grows project data: each model has its own result folder.
 Inside `exmr`, `flowhmr` or `gvhmr`, different processing ranges can add `clips`
@@ -295,7 +302,7 @@ and feature-stage gains, see [resource modes and optimizations](PERFORMANCE.md).
 
 Each model has a [detailed guide](models/README.md): [ExMR](models/EXMR.md),
 [FlowHMR](models/FLOWHMR.md), [GVHMR](models/GVHMR.md), [MAMMA](MAMMA.md)
-and [PromptHMR](models/PROMPTHMR.md).
+and [PromptHMR](models/PROMPTHMR.md). For live bone preview, use [PEAR](models/PEAR.md).
 These cover required files, settings, defaults and workflow limitations.
 
 These quality comparisons are **subjective observations from our test videos**,
@@ -311,8 +318,9 @@ opening a project restores its saved model. **Prepare Preview**, below
 | **GVHMR** | Lowest overall quality in our tests, but sometimes better for unusual poses such as backflips. | Optional **HandFlow**; not inferred by GVHMR itself. |
 | **MAMMA** | Multi-view capture of human motion and interactions. Needs separate setup and overlapping synchronized views; outside the quality ranking above. | Included. |
 | **PromptHMR** | Can improve relative placement and interactions between multiple people in one fixed-camera video. Overall motion quality was lower than ExMR in our subjective tests; contacts and depth can still be wrong. Separate setup. | No finger tracking; fixed neutral pose. |
+| **PEAR** | Live single-person bone preview from a webcam or video. No motion recording, correction, retargeting or export in this mode. | Included. |
 
-All five support contact correction, a 52-bone overlay and FBX export.
+The five offline models support contact correction, a 52-bone overlay and FBX export.
 ExMR/FlowHMR/GVHMR use **Find person** for explicit people selection; MAMMA
 and PromptHMR track people during reconstruction. The viewport shows the selected
 source mesh: SMPL-X for ExMR/GVHMR/MAMMA/PromptHMR,
@@ -367,6 +375,10 @@ clips and timing scopes from this historical table.
 | 25.7 seconds | GVHMR | 1 | 3m 00s | 5.08 | 12.42 |
 | 13.8 seconds | MAMMA | 3 | 11m 52s | 6.47 | 9.11 |
 | 14.1 seconds | PromptHMR | 1 | 3m 56s | 4.61 | 8.74 |
+
+For PEAR's separate live-frame timings, current fixed-bone behavior and measured
+VRAM, see the [PEAR performance notes](models/PEAR.md#placement-and-performance).
+These are not full-clip reconstruction measurements.
 
 For ExMR, FlowHMR and GVHMR, times cover model-processing stages, excluding shared person
 tracking, app contact correction and preview/export. GVHMR includes HTD, FootMR
@@ -528,7 +540,7 @@ disabled in Low Memory; FlowHMR SAM also uses one-frame batches in that mode.
 
 GPU allocator budgets use ComfyUI's external-use margin: 600 MiB on Windows,
 or 700 MiB on GPUs larger than 15 GiB, subtracted from currently free VRAM.
-All five model paths use this rule; FlowHMR/ExMR no longer subtract fixed
+The five offline model paths use this rule; FlowHMR/ExMR no longer subtract fixed
 3/2 GiB or impose an additional 95/90% ceiling. Inference working memory is
 part of the allowed budget. This is not a guarantee of free VRAM: other apps
 and allocations outside PyTorch can still consume it.
@@ -619,3 +631,22 @@ See [Build from source](BUILD.md) for environment setup, editing and release bui
 Original RGB MoCap code/documentation uses the [MIT License](../LICENSE).
 Third-party code, derived modifications, weights and body data keep their own
 terms; see [Third-party notices](../THIRD_PARTY_NOTICES.md).
+
+## PEAR live preview
+
+Run `install.cmd` with the app closed; PEAR support is included. PEAR reuses
+the shared runtime and adds only pinned source/utilities; no compiler is required.
+Prepare its checkpoint and registered SMPL-X 2020/FLAME bundle in Model Manager.
+Select **PEAR · Live** and click **Start Live Tracking** to load the models.
+**Stop** ends tracking and releases the models and webcam. With **Webcam: None**,
+open a video and seek/play its timeline to infer the current frame. Alternatively,
+select a connected webcam before starting. While tracking is running, input
+changes reuse the loaded models. Rotation and smoothing apply to both sources.
+The live view shows fixed-length body and finger bones without per-frame body
+mesh calculation. **Reset Bones** recalibrates their lengths from the displayed
+pose, pauses video playback and retains the loaded models and viewport camera.
+**World Position** is on by default. Turn it off to hold the pelvis at its current
+position, including height, while retaining pelvis rotation and joint motion.
+There is no Find person, recording, correction, retargeting or animation export
+in this live mode. Switching models releases the live worker and device.
+See the [PEAR guide](models/PEAR.md) for setup, resources and limitations.

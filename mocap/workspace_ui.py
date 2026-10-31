@@ -135,6 +135,7 @@ def build_workspace(w):
     w.video_view.metadata_ready.connect(w.video_ready)
     w.video_view.decode_error.connect(w.video_failed)
     video_panel, video_header = editor("Movie Clip", w.build_people_editor(w.video_view))
+    w.build_pear_header(video_header)
     w.fps_label = QLabel("No clip loaded")
     w.fps_label.setObjectName("muted")
     w.fps_label.setMinimumWidth(0)
@@ -148,6 +149,7 @@ def build_workspace(w):
         w.video_view.show_observations = enabled
         w.video_view.update()
     overlay.toggled.connect(toggle_overlay)
+    w.video_overlay=overlay
     video_header.addWidget(overlay)
     motion_panel, motion_header = editor("3D Viewport", w.motion_view)
     w.bone_overlay=QCheckBox('Bone Overlay')
@@ -172,9 +174,11 @@ def build_workspace(w):
     w.viewport_footer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
     viewport_footer = QHBoxLayout(w.viewport_footer)
     viewport_footer.setContentsMargins(9, 3, 6, 3)
+    w.viewport_checks={}
     for label, attribute in (("Floor Grid", "show_grid"), ("Correction Floor", "show_correction_floor"), ("Motion Path", "show_trajectory"),
                              ("Lock", "show_foot_locks"), ("Name", "show_names")):
         check = QCheckBox(label)
+        w.viewport_checks[attribute]=check
         check.setChecked(getattr(w.motion_view, attribute))
         check.setToolTip(tooltip_text({'show_grid': 'Show the reference grid at height zero. Does not change ground contact.', 'show_correction_floor': 'Show the correction floor height as an orange plane. Display only.', 'show_trajectory': 'Show the path followed by the person.', 'show_foot_locks': '', 'show_names': 'Show each person\'s name above their mesh. Rename people by right-clicking the People list. Display only.'}[attribute]))
         if attribute=='show_names':w.name_labels=check
@@ -415,6 +419,7 @@ def build_workspace(w):
     w.model_pages.addWidget(w.exmr_page)
     w.build_mamma_settings()
     w.build_prompthmr_settings()
+    w.build_pear_settings()
     shared_settings=QWidget()
     settings = QVBoxLayout(shared_settings)
     settings.setContentsMargins(0, 0, 0, 0)

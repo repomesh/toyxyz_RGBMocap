@@ -53,7 +53,7 @@ Other runtime packages retain their included licenses. Supporting notices includ
   GVHMR notices. Follow the upstream publication/citation instructions, including
   Wehrbein and Rosenhahn (ExMR, arXiv:2610.26213; FootMR, 3DV 2026),
   and the original GVHMR work. [Papers and BibTeX](docs/CITATIONS.md) cover
-  the five supported motion models and optional refinement models.
+  the supported motion models, PEAR live preview and optional refinement models.
 - Kimodo MotionCorrection: copyright 2026, NVIDIA Corporation & Affiliates.
   Local changes add explicit contact targets, bounded solving and anatomical guards.
 - OSNet: Kaiyang Zhou; original MIT notices and model-zoo provenance are retained.
@@ -71,3 +71,15 @@ permissions are not waived by separate worker processes or separate labeling.
 Keep original notices and any required corresponding source/build materials when
 distributing. The private development folder may contain registered models,
 derived caches and user projects; it is not a cleared public release package.
+
+## Optional PEAR live support
+
+[PEAR](https://github.com/Pixel-Talk/PEAR) source uses Apache-2.0. Setup fetches a
+pinned upstream revision and preserves its license with the locally adapted
+source. The connector omits unused training/render imports, uses native Torch
+constructor helpers and reuses the shared runtime. PyTorch3D pure-Python utilities
+retain their upstream BSD license/notices; RoMa retains its package license.
+YOLOv8s/Ultralytics retain their existing AGPL/provider terms. PEAR weights,
+SMPL-X 2020 and FLAME geometry retain separate provider conditions; registered
+body data is neither committed nor redistributed by RGB MoCap. See the
+[PEAR guide](docs/models/PEAR.md) and [PEAR paper citation](docs/CITATIONS.md#pear).

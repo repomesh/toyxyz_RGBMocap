@@ -12,6 +12,9 @@ def emit(kind,**value):
 
 def main():
     stage=sys.argv[1] if len(sys.argv)>1 else ''
+    if stage=='pear_live':
+        from .pear.worker import main as live_main
+        return live_main()
     if stage in ('prompthmr_prepare','prompthmr_publish'):
         from .compute_policy import configure_worker_cpu
         configure_worker_cpu(stage)

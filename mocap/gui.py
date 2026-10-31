@@ -127,7 +127,7 @@ class ModelsDialog(QDialog):
         self.window = window
         self.tool = MOTION_TOOLS[tool_key or window.model_choice.currentData()]
         from .models import STAGE_REQUIREMENTS
-        keys = ({key for key in STAGE_REQUIREMENTS[self.tool.key+'_assets']} if self.tool.key in ('mamma','prompthmr') else
+        keys = ({key for key in STAGE_REQUIREMENTS[self.tool.key+'_assets']} if self.tool.key in ('mamma','prompthmr','pear') else
                 {key for stage in (*self.tool.stages(refine=True, footmr=True, handflow=True),'people') for key in STAGE_REQUIREMENTS.get(stage, ())})
         # Keep public automatic downloads together, followed by manual-only files.
         # Stable sorting preserves the existing component order within each group.
@@ -145,6 +145,10 @@ class ModelsDialog(QDialog):
         elif self.tool.key=='prompthmr':
             from .prompthmr_manager import runtime_panel
             layout.addWidget(runtime_panel(self))
+        elif self.tool.key=='pear':
+            from .pear_runtime import status
+            note=QLabel(status()[1]+'\nPEAR support is included in install.cmd and update.cmd. Uses the existing shared runtime; no CUDA compiler is needed. Model files are prepared separately below.')
+            note.setWordWrap(True);layout.addWidget(note)
         self.table = QTableWidget(len(self.models), 3)
         self.table.setHorizontalHeaderLabels(["Model", "Status", "Action"])
         self.table.horizontalHeader().setStretchLastSection(True)
@@ -326,7 +330,7 @@ class ModelsDialog(QDialog):
             raise ValueError("This model is not part of the selected motion tool.")
         model = BY_KEY[key]
         name, _ = QFileDialog.getOpenFileName(picker_parent or self, 'Import ' + model.name, '',
-            f'Model file ({model.path.name});;All files (*)')
+            ('PEAR assets (assets.zip);;All files (*)' if key=='pear_geometry' else f'Model file ({model.path.name});;All files (*)'))
         if name:
             self.start_model_jobs([('import_model', ['--model', key, '--video', name])])
 
@@ -335,8 +339,9 @@ class ModelsDialog(QDialog):
 from .character_ui import CharacterWorkspace
 from .mamma_ui import MammaWorkspace
 from .prompthmr_ui import PromptHMRWorkspace
+from .pear_ui import PearWorkspace
 
-class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,PeopleWorkspace,QMainWindow):
+class MainWindow(PearWorkspace,PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorkspace,ProjectSaving,PeopleWorkspace,QMainWindow):
     def __init__(self, video: Path | None = None):
         super().__init__()
         self.setWindowTitle("RGB MoCap | Motion Workspace")
@@ -344,6 +349,7 @@ class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorks
         self.setMinimumSize(1100, 700)
         self.video_path = None
         self.init_mamma()
+        self.init_pear()
         self.project = None
         self.workspace_root=None
         self._workspace_loading=False
@@ -420,6 +426,8 @@ class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorks
 
     @read_only_checks
     def update_readiness(self):
+        if self._pear_active:
+            self.pear_sync_controls();return
         if getattr(self,'_readiness_depth',0):
             self._readiness_pending=True
             return
@@ -500,6 +508,7 @@ class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorks
             dialog.deleteLater()
 
     def select_model(self, *_):
+        if self.pear_select_model():return
         tool = MOTION_TOOLS[self.model_choice.currentData()]
         if self.workspace_root is not None and not self._workspace_loading and tool.key!=getattr(self,'_selected_tool',None):
             if self.busy or self.contact_saving:
@@ -559,6 +568,7 @@ class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorks
         self.set_active_result(self.selected_result())
 
     def current_export(self):
+        if self._pear_active:return None
         info=self.contact_tracks.get(base_result(self.active_result))
         if self.active_result.startswith('corrected_') and (self.contact_saving or (info and info.get('unsaved'))):return None
         # selected_export checks source, correction and target receipts itself.
@@ -634,6 +644,13 @@ class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorks
             self.load_video(Path(name))
 
     def load_video(self, path):
+        if self._pear_active:
+            self.stop_playback()
+            self.pear_camera.blockSignals(True)
+            self.pear_camera.setCurrentIndex(0)
+            self.pear_camera.blockSignals(False)
+            self.video_readable=False
+            self.pear_source_changed()
         if self.model_choice.currentData()=='mamma':
             return self.load_mamma_videos([path])
         try:
@@ -710,6 +727,9 @@ class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorks
 
     @batch_readiness
     def load_project(self, project):
+        if self._pear_active:
+            self.pear_leave()
+            self.model_choice.blockSignals(True);self.model_choice.setCurrentIndex(self.model_choice.findData(self._selected_tool));self.model_choice.blockSignals(False)
         from .project_workspace import is_workspace
         if is_workspace(project):return self.open_workspace(project)
         from .project_storage import project_to_open, source_video
@@ -813,6 +833,7 @@ class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorks
         return True
 
     def seek(self, index):
+        self.pear_seek(index)
         self.frame_number.blockSignals(True)
         self.frame_number.setValue(index + 1)
         self.frame_number.blockSignals(False)
@@ -842,6 +863,8 @@ class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorks
             self.clip_label.setText("Clip: no video")
 
     def present_frame(self, index):
+        if self._pear_active:
+            self.pear_submit();return
         # 3D and overlays advance only when the corresponding decoded image is ready.
         self.motion_view.index = index
         self.motion_view.scene_time=self.source_offset+index/(self.info['fps'] if self.info else 30)
@@ -866,6 +889,7 @@ class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorks
         self.timer.stop()
         self.timer_resolution.release()
         self.set_playback_indicator(False)
+        self.pear_playback_stopped()
 
     def set_playback_indicator(self, playing):
         label = "Pause" if playing else "Play"
@@ -874,10 +898,12 @@ class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorks
         self.play_button.setAccessibleName(label)
 
     def step_frames(self, amount):
+        if self._pear_active and self.pear_camera.currentData() is not None:return
         self.stop_playback()
         self.slider.setValue(max(0, min(self.slider.maximum(), self.slider.value() + amount)))
 
     def toggle_play(self):
+        if self._pear_active and self.pear_camera.currentData() is not None:return
         if self.timer.isActive():
             self.stop_playback()
         elif self.video_path and self.info and self.video_readable:
@@ -1454,6 +1480,8 @@ class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorks
             self.update_readiness()
 
     def cancel_job(self):
+        self.pear_leave()
+        self.pear_stop_scan()
         if self.character_process is not None:
             self.cancel_character();return
         if self.current_stage=='save_project' and getattr(self,'_project_save_request',None):
@@ -1741,6 +1769,8 @@ class MainWindow(PromptHMRWorkspace,MammaWorkspace,CharacterWorkspace,ModelWorks
             worker = self.process
             if worker:
                 worker.waitForFinished(3000)
+        self.pear_leave()
+        self.pear_stop_scan()
         if self.character_process is not None:
             self.cancel_character();self.character_process.waitForFinished(5000)
         self.character_loader.close()

@@ -6,6 +6,27 @@ These references do not change the separate licenses or permissions for code,
 model weights, body data or input footage. Supporting models retain their own
 upstream acknowledgements; see [third-party notices](../THIRD_PARTY_NOTICES.md).
 
+## PEAR
+
+[Paper](https://doi.org/10.1145/3799902.3811096) · [Official citation](https://github.com/Pixel-Talk/PEAR/blob/8e915f8c3dfae4063d66763e6296b2b0b02eb303/README.md#-citation)
+
+```bibtex
+@inproceedings{wu2026pear,
+  author    = {Wu, Jiahao and Liu, Yunfei and Lin, Lijian and Zhu, Ye and Zhu, Lei and Li, Jingyi and Li, Yu},
+  title     = {PEAR: Pixel-aligned Expressive humAn mesh Recovery},
+  booktitle = {Proceedings of the Special Interest Group on Computer Graphics and Interactive Techniques Conference Conference Papers},
+  series    = {SIGGRAPH '26 Conference Papers},
+  year      = {2026},
+  pages     = {46:1--46:12},
+  doi       = {10.1145/3799902.3811096},
+  publisher = {Association for Computing Machinery}
+}
+```
+
+RGB MoCap uses PEAR for live bone preview; its fixed-length display rig and
+filtering are application features, not a claim to reproduce the paper's full
+mesh workflow or reported throughput.
+
 ## ExMR
 
 [Paper](https://arxiv.org/abs/2610.26213) · [Official citation](https://github.com/twehrbein/ExMR/blob/main/README.md)
